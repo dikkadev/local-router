@@ -1,18 +1,20 @@
-# Local Artifact Router Specification
+# Local Router Specification
 
 ## Purpose
 
-Build a Go-based local development tool that makes short-lived interactive web artifacts easy to open from a Windows browser while the actual artifact server runs ad hoc, likely from WSL, with logs/stdout still attached to the CLI invocation.
+Build a Go-based local development tool that makes short-lived local web servers easy to open from a Windows browser while the actual server runs ad hoc, likely from WSL, with logs/stdout still attached to the command that started it.
 
-The tool should avoid requiring the user to remember ports or edit proxy configuration for each run.
+The tool should avoid requiring the user to remember ports, manually pick non-conflicting ports, or edit proxy configuration for each run.
 
 ## Problem statement
 
-A CLI starts a temporary web server on WSL. The user accesses it from a Windows browser. Ports are inconvenient and unclear:
+A command starts a temporary web server on WSL. The user accesses it from a Windows browser. Raw ports are inconvenient and unclear:
 
 ```text
 http://localhost:5173
 ```
+
+They also create a choice between living with port collisions on familiar ports or using random/high ports that are hard to remember and identify.
 
 The desired experience is a stable, meaningful URL:
 
@@ -27,7 +29,6 @@ without per-run Windows hosts-file edits and without hand-editing/reloading Cadd
 - General-purpose replacement for Caddy, nginx, or Traefik.
 - Required custom DNS setup.
 - Required Windows hosts-file mutation.
-- Persistent artifact servers.
 - Internet/LAN exposure; this is loopback-only.
 - HTTPS as a v1 requirement, though it should remain possible later.
 
@@ -39,19 +40,19 @@ A small persistent local daemon that:
 
 - Listens on loopback HTTP, ideally `127.0.0.1:80`.
 - Routes requests by `Host` header.
-- Reverse-proxies artifact hosts to registered target ports.
+- Reverse-proxies registered hosts to target ports.
 - Serves its own dashboard/control plane.
-- Exposes a small registration API for CLI processes.
-- Removes stale routes when artifact processes die or stop heartbeating.
+- Exposes a small registration API.
+- Removes stale routes when registered targets die or stop heartbeating.
 
-### Artifact server
+### Routed server
 
-An ephemeral web server started by a user-facing CLI command. It should:
+An ephemeral local web server. It should:
 
 - Bind to loopback, usually `127.0.0.1:0`, letting the OS choose a free port.
 - Register a friendly hostname with the router.
 - Print/open the stable URL.
-- Keep stdout/log output attached to the CLI session.
+- Keep stdout/log output attached to the command that started it.
 - Unregister on normal exit.
 - Heartbeat while alive so crashes are cleaned up.
 
@@ -61,9 +62,9 @@ Use `.localhost` by default:
 
 ```text
 http://dev.localhost       router dashboard
-http://demo.localhost      artifact named demo
-http://plot.localhost      artifact named plot
-http://run-8f3a.localhost  generated artifact name
+http://demo.localhost      routed server named demo
+http://plot.localhost      routed server named plot
+http://run-8f3a.localhost  generated route name
 ```
 
 Rationale:
@@ -87,17 +88,17 @@ These should not be required for v1 because a normal hosts file generally cannot
 Example serve command:
 
 ```bash
-artifact serve ./demo --name demo
+local-router serve ./demo --name demo
 ```
 
 Output:
 
 ```text
-Serving artifact:
+Serving:
   http://demo.localhost
 
 Dashboard:
-  http://art.localhost
+  http://dev.localhost
 
 Logs:
   GET /                    200
@@ -114,7 +115,7 @@ http://demo.localhost:7777
 
 ## Dashboard requirements
 
-The router should serve a small dashboard at `art.localhost` showing active and recently stale routes.
+The router should serve a small dashboard at `dev.localhost` showing active and recently stale routes.
 
 Suggested columns:
 
@@ -129,12 +130,12 @@ Suggested columns:
 
 Suggested actions:
 
-- Open artifact
+- Open route
 - Copy URL
 - Unregister/stop route
 - Rename route, optional later
 - Pin route, optional later
-- View logs, optional later if logs are exposed as artifact endpoints or captured intentionally
+- View logs, optional later if logs are exposed by the routed server or captured intentionally
 
 The dashboard should live-update. Prefer Server-Sent Events for route table changes:
 
@@ -146,7 +147,7 @@ Use WebSockets only if later bidirectional terminal-like interaction is needed.
 
 ## Registration API draft
 
-Routes are managed through reserved router paths, not artifact host paths.
+Routes are managed through reserved router paths, not proxied target paths.
 
 ### Register or replace route
 
@@ -157,10 +158,10 @@ Content-Type: application/json
 {
   "host": "demo.localhost",
   "target": "http://127.0.0.1:49173",
-  "title": "Demo artifact",
+  "title": "Demo",
   "pid": 12345,
   "cwd": "/home/me/project",
-  "startedBy": "artifact serve ./demo --name demo",
+  "startedBy": "local-router serve ./demo --name demo",
   "ttlSeconds": 10
 }
 ```
@@ -206,21 +207,21 @@ For normal browser requests:
 2. If host is the router dashboard host, serve the dashboard/API.
 3. Else look up host in the route table.
 4. If found, reverse proxy to its target.
-5. If missing, return a helpful 404 page explaining that no artifact is registered for the host and link to the dashboard.
+5. If missing, return a helpful 404 page explaining that no route is registered for the host and link to the dashboard.
 
 Reverse proxy should support:
 
 - Normal HTTP methods.
 - Streaming responses without unwanted buffering.
-- WebSocket upgrades for interactive artifacts.
+- WebSocket upgrades for interactive routes.
 - SSE passthrough.
 
 ## Lifecycle and cleanup
 
 Use layered cleanup:
 
-- CLI unregisters route on normal exit.
-- CLI heartbeats periodically while alive.
+- Registering process unregisters route on normal exit.
+- Registering process heartbeats periodically while alive.
 - Router expires routes whose heartbeat TTL elapses.
 - Router may periodically health-check targets and mark/remove dead routes.
 
@@ -251,7 +252,7 @@ Suggested collision behavior:
 
 ## Security requirements
 
-- Bind router and artifact targets to loopback only by default.
+- Bind router and targets to loopback only by default.
 - Do not listen on `0.0.0.0` unless explicitly requested.
 - Do not expose the admin API beyond loopback.
 - Treat route registration as local-only control plane access.
@@ -291,18 +292,18 @@ v1 should handle this explicitly:
 One binary can have multiple modes:
 
 ```bash
-artifact router start
-artifact router status
-artifact router stop
-artifact router routes
-artifact serve ./demo --name demo
+local-router router start
+local-router router status
+local-router router stop
+local-router router routes
+local-router serve ./demo --name demo
 ```
 
 Alternative binary split:
 
 ```bash
-artifact-router
-artifact serve ./demo
+local-router-daemon
+local-router serve ./demo
 ```
 
 The one-binary mode is likely simpler for installation and discovery.
@@ -339,8 +340,8 @@ Router lookup should be protected by a mutex or other concurrency-safe structure
 
 ## Open questions
 
-1. Project/tool name: should the command be `artifact`, `art`, `local-artifact-router`, or something else?
-2. Should v1 include the artifact-serving command itself, or only the reusable router and registration client?
+1. Project/tool name: should the command be `local-router`, `router`, or something else?
+2. Should v1 include the server-starting command itself, or only the reusable router and registration client?
 3. Should the router auto-start from `serve`, and if so how should it daemonize under WSL?
 4. What should happen when port 80 is unavailable: hard fail, fallback port, or guided install?
 5. Should the dashboard be plain server-rendered HTML first, or a small bundled frontend?
@@ -354,7 +355,7 @@ Router lookup should be protected by a mutex or other concurrency-safe structure
 - In-memory route registry.
 - Register, heartbeat, unregister, list API.
 - Host-header reverse proxy.
-- Dashboard host at `art.localhost`.
+- Dashboard host at `dev.localhost`.
 - SSE events for dashboard live updates.
 - Basic stale route cleanup.
 - Clear port 80/fallback behavior.

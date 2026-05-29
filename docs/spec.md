@@ -116,7 +116,9 @@ Minimal successful output:
 http://demo.localhost
 ```
 
-The first line should be the URL so it is easy to copy, pipe, parse, or open. Normal successful commands should stay quiet beyond essential output. Request logs from proxied traffic should not be printed by default; stdout has a specific use as command output, not as a live access log.
+The first line should be the URL so it is easy to copy, pipe, parse, or open. After that, commands may emit normal conservative logs for important events, warnings, and errors. They should not print noisy per-request access logs by default, especially not successful `200` requests.
+
+Human-readable logs should use `charmbracelet/log` with its default nice/colorful terminal output. Commands should also expose a `--json` option for machine-readable log output.
 
 If the router is not running, the CLI should fail clearly and say that the router service is not running.
 
@@ -278,6 +280,7 @@ The router service and CLI do not have to be the same binary for the same OS tar
 Expected split:
 
 - A Windows router service can own the stable browser-facing port 80 and behave like a normal Windows background service.
+- Once the router behavior is working, the Windows-side server should be installed/run as a service, for example through NSSM.
 - A WSL CLI can talk to that router service over localhost and register WSL-hosted target ports.
 - Shared code can still live in one Go codebase where practical.
 
@@ -304,7 +307,7 @@ local-router pin demo --port 5173 --title "Demo app"
 local-router unpin demo
 ```
 
-The router service may be a separate executable or installed service wrapper, especially on Windows. The CLI should just interact with the service API like any other client.
+The router service may be a separate executable or installed service wrapper, especially on Windows. NSSM is a likely service wrapper once the router server is ready to run persistently. The CLI should just interact with the service API like any other client.
 
 ## Implementation notes for Go
 
@@ -316,6 +319,8 @@ net/http/httputil
 net/url
 sync
 ```
+
+Logging should use `github.com/charmbracelet/log` for human-readable output, with a `--json` option for structured output.
 
 Route table shape:
 
@@ -341,7 +346,7 @@ Router lookup should be protected by a mutex or other concurrency-safe structure
 ## Open questions
 
 1. Should the dashboard be included in v1, or should v1 only expose CLI/API route inspection?
-2. What Windows service wrapper/install approach should be used for the router service?
+2. Should NSSM be the Windows service wrapper/install approach for the router service, or is there a better fit?
 3. Should route definitions persist across router restart, and if so should only pinned routes persist?
 
 ## Proposed v1 scope
@@ -357,6 +362,7 @@ Router lookup should be protected by a mutex or other concurrency-safe structure
 - Helpful unavailable page for pinned or registered routes with no reachable target.
 - Basic stale route cleanup for non-pinned routes.
 - Clear setup/startup error when port 80 cannot be used.
-- Documentation for Windows browser and WSL CLI usage.
+- Conservative human-readable logging through `charmbracelet/log`, plus a `--json` mode.
+- Documentation for Windows browser, WSL CLI usage, and Windows service setup such as NSSM.
 
 No actual implementation has been started yet.

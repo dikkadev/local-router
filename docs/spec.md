@@ -438,4 +438,4 @@ Router lookup should be protected by a mutex or other concurrency-safe structure
 - Conservative human-readable logging through `charmbracelet/log`.
 - Documentation for Windows browser, WSL CLI usage, and later Windows service setup such as NSSM.
 
-No actual implementation has been started yet.
+Initial implementation lives under `cmd/local-router` and `internal/`; this spec remains the v1 behavioral reference.

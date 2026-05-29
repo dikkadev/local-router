@@ -37,6 +37,7 @@ without per-run Windows hosts-file edits and without hand-editing/reloading Cadd
 - Starting, supervising, or owning the target web servers.
 - Internet/LAN exposure; this is loopback-only.
 - HTTPS as a v1 requirement, though it should remain possible later.
+- Persistent route storage across router restarts.
 
 ## Key concepts
 
@@ -48,8 +49,9 @@ A small persistent local service that:
 - Routes requests by `Host` header.
 - Reverse-proxies registered hosts to local target ports.
 - Exposes a small REST registration API.
+- Serves a very small HTML route table at the reserved control hosts.
 - Can be controlled by a CLI, but is not specific to CLI callers.
-- Removes or marks stale routes when registered targets disappear or stop heartbeating.
+- Marks or removes stale non-pinned routes based on heartbeat misses.
 
 ### Registered route
 
@@ -64,9 +66,9 @@ Optional registration values:
 
 - `title`: a slightly longer display title.
 - `targetHost`: defaults to `127.0.0.1`.
-- `pinned`: whether the route should remain reserved even when no target is currently responding.
-- process metadata such as PID/CWD/command, if a caller wants to provide it.
-- heartbeat/TTL settings, if the route should expire automatically.
+- `pinned`: whether the route should remain reserved while the router is running, even when no target is currently responding.
+- `exec`: small display/debug metadata describing what started or owns the target.
+- `heartbeatPath`: target path used for health checks; defaults to `/`.
 
 The router does not choose generated names. Callers must provide the route name they want.
 
@@ -79,9 +81,10 @@ A target server is any local HTTP server that another tool or user starts separa
 Use `.localhost` by default:
 
 ```text
-http://local-router.localhost  router dashboard/control page
-http://demo.localhost          route named demo
-http://plot.localhost          route named plot
+http://dev.localhost     primary router control page
+http://router.localhost  secondary router control page
+http://demo.localhost    route named demo
+http://plot.localhost    route named plot
 ```
 
 Rationale:
@@ -90,6 +93,13 @@ Rationale:
 - It avoids hosts-file edits for common browser behavior.
 - It is more predictable than `.local`, which is associated with mDNS/Bonjour and LAN discovery.
 - Custom short domains are possible later but require resolver/DNS/hosts setup beyond the reverse proxy itself.
+
+Reserved route names:
+
+- `dev`
+- `router`
+
+These names cannot be registered as normal routes.
 
 ## Optional naming extensions
 
@@ -116,15 +126,32 @@ Minimal successful output:
 http://demo.localhost
 ```
 
-The first line should be the URL so it is easy to copy, pipe, parse, or open. After that, commands may emit normal conservative logs for important events, warnings, and errors. They should not print noisy per-request access logs by default, especially not successful `200` requests.
+For successful registration, stdout should print only the final URL. Other commands should produce useful but conservative output and should not spam. Proxied request logs should not be printed by default, especially not successful `200` requests.
 
-Human-readable logs should use `charmbracelet/log` with its default nice/colorful terminal output. Commands should also expose a `--json` option for machine-readable log output.
+Human-readable logs should use `charmbracelet/log` with its default nice/colorful terminal output. There is no CLI `--json` requirement for v1.
 
 If the router is not running, the CLI should fail clearly and say that the router service is not running.
 
-## Dashboard requirements
+Relevant command shape:
 
-If included, the router dashboard should be small and focused. It should show active and pinned routes and make it easy to open/copy route URLs.
+```bash
+local-router status
+local-router register demo --port 5173 --title "Demo app"
+local-router register demo --port 5173 --title "Demo app" --pinned
+local-router register demo --port 3000 --force
+local-router unregister demo
+local-router routes
+local-router pin demo
+local-router unpin demo
+```
+
+`--force` is the generic override flag for replacing/updating an existing route when the operation would otherwise conflict.
+
+## Control page requirements
+
+The router should serve a very simple pure HTML control page at `dev.localhost`, also available at `router.localhost`. `dev.localhost` is the primary name.
+
+The page should show a table of current registrations. No styling framework is needed; plain HTML is enough. Use a small amount of JavaScript to periodically refresh the table in the background with clean updates and no visible page flicker.
 
 Suggested columns:
 
@@ -133,32 +160,34 @@ Suggested columns:
 - Title, if provided
 - Status: live, unavailable, stale, pinned
 - Target host/port
-- Last heartbeat, if applicable
-- PID/CWD/command, if provided
+- Heartbeat path
+- Miss count
+- Exec metadata, if provided
 
-Suggested actions:
+Suggested actions, if easy and still minimal:
 
 - Open route
 - Copy URL
 - Unregister route
 - Pin/unpin route
 
-Pinned routes stay reserved even if nothing is currently backing the target port. When a pinned route has no reachable target, the router should serve its own helpful error page for that hostname instead of treating the name as unregistered.
-
-If live dashboard updates are implemented, Server-Sent Events are a reasonable fit for route table changes:
-
-```text
-GET /_router/events
-```
+Pinned routes stay reserved for the lifetime of the router process even if nothing is currently backing the target port. When a pinned route has no reachable target, the router should serve its own helpful unavailable page for that hostname instead of treating the name as unregistered. If something later starts listening on that port, the route should work on the next browser request/reload.
 
 ## Registration API draft
 
-Routes are managed through reserved router paths, not proxied target paths.
+Routes are managed through reserved router paths, not proxied target paths. Use paths under `/router/...`; do not use an underscore-prefixed path.
 
-### Register or replace route
+The API is exposed on the control hosts:
+
+```text
+http://dev.localhost/router/...
+http://router.localhost/router/...
+```
+
+### Register route
 
 ```http
-PUT /_router/routes/{name}
+PUT /router/routes/{name}
 Content-Type: application/json
 
 {
@@ -166,63 +195,94 @@ Content-Type: application/json
   "title": "Demo app",
   "targetHost": "127.0.0.1",
   "pinned": false,
-  "pid": 12345,
-  "cwd": "/home/me/project",
-  "startedBy": "npm run dev",
-  "ttlSeconds": 10
+  "exec": "npm run dev",
+  "heartbeatPath": "/"
 }
 ```
 
-The route host is derived from the route name:
+The route host is derived from the normalized route name:
 
 ```text
 name = demo
 host = demo.localhost
 ```
 
-### Heartbeat
+If a route already exists, registration fails with `409 Conflict` unless the request uses the generic force/override mechanism. For the REST API, use:
 
 ```http
-POST /_router/routes/{name}/heartbeat
+PUT /router/routes/{name}?force=true
 ```
+
+Pinned routes also require `force=true` to replace/update.
+
+### Heartbeat / health check target
+
+The route registration may include a custom `heartbeatPath`. If omitted or empty, `/` is used.
+
+The router checks the target with a lightweight request to that path. `HEAD` is preferred where practical; if a target does not handle `HEAD` usefully, the router may fall back to `GET`.
+
+Any `2xx` response counts as a hit. Anything else, including timeout or connection failure, counts as a miss.
+
+Default interval: 30 seconds.
+
+Default state transitions:
+
+- after 3 consecutive misses: route becomes unavailable;
+- after 5 consecutive misses: non-pinned route is removed;
+- pinned routes are never removed by heartbeat misses.
+
+There is no separate health-check system beyond this heartbeat/health path behavior.
 
 ### Unregister
 
 ```http
-DELETE /_router/routes/{name}
+DELETE /router/routes/{name}
 ```
 
 ### List routes
 
 ```http
-GET /_router/routes
+GET /router/routes
 ```
 
-### Event stream
+### Control page data
 
-```http
-GET /_router/events
-```
+The control page should periodically refresh route data in the background. This can use the route list endpoint directly; no event stream is required for v1.
 
-Example events:
+## Route name normalization
 
-```json
-{ "type": "route_added", "name": "demo" }
-{ "type": "route_changed", "name": "demo" }
-{ "type": "route_unavailable", "name": "demo" }
-{ "type": "route_removed", "name": "demo" }
-```
+Route names are lowercase labels using `-` as the delimiter.
+
+The router/CLI should massage practical user input into a useful route name where possible:
+
+- convert to lowercase;
+- replace common separators such as spaces, underscores, and commas with `-`;
+- collapse repeated dashes;
+- trim leading/trailing dashes;
+- replace remaining invalid symbols with `0`.
+
+If normalization cannot produce a useful valid name, reject the input with a clear error.
+
+This normalization behavior is implementation behavior, not user-facing conceptual complexity. The regular user-facing explanation should simply say that route names are lowercase words separated by dashes.
+
+Final route names must be valid single `.localhost` labels: lowercase letters, numbers, and hyphens only; no dots; no empty name; no reserved control name.
 
 ## Routing behavior
 
 For normal browser requests:
 
 1. Strip any port from `req.Host`.
-2. If host is the router dashboard/control host, serve the router UI/API.
+2. If host is `dev.localhost` or `router.localhost`, serve the control page/API.
 3. Else look up host in the route table.
-4. If the route exists and its target is reachable, reverse proxy to the target.
-5. If the route exists but no target is reachable, serve a helpful route-unavailable page.
+4. If the route exists, attempt to reverse proxy to its target.
+5. If proxying fails because no target is reachable, serve a helpful route-unavailable page.
 6. If the route is missing, return a helpful 404 page explaining that no route is registered for the host.
+
+Unavailable and missing responses:
+
+- unregistered host: `404 Not Found`;
+- registered but unavailable host, including pinned routes with no backing target: `523 Origin Is Unreachable`;
+- both pages should mention `dev.localhost` as the place to inspect current registrations.
 
 Reverse proxy should support:
 
@@ -230,22 +290,35 @@ Reverse proxy should support:
 - Streaming responses without unwanted buffering.
 - WebSocket upgrades.
 - SSE passthrough.
+- Path and query preservation.
+
+Proxy behavior:
+
+- Rewrite upstream `Host` to the target host.
+- Set `X-Forwarded-Host` to the original requested host.
+- Set `X-Forwarded-Proto: http`.
+- Set or append `X-Forwarded-For`.
+- Pass ordinary request/response headers through normally.
+- Use a 2 minute timeout.
+- Do not impose a small application-level body limit; this is local tooling, so the practical limit should be large/default rather than restrictive.
 
 ## Lifecycle and cleanup
+
+All route state is in memory. Nothing persists across router restart, including pinned routes.
 
 Use layered cleanup:
 
 - Callers may unregister routes on normal exit.
-- Callers may heartbeat periodically while alive.
-- Non-pinned routes with a heartbeat TTL may expire when heartbeats stop.
-- The router may health-check targets and mark them unavailable.
-- Pinned routes remain registered even when unavailable.
+- The router checks each target's heartbeat path every 30 seconds.
+- Non-pinned routes become unavailable after 3 misses and are removed after 5 misses.
+- Pinned routes become unavailable after misses but remain registered for the lifetime of the router process.
+- Each browser request still attempts to proxy a registered route, so a previously unavailable route can recover as soon as the target is reachable again.
 
 Stale non-pinned entries should not permanently block names.
 
 ## Naming behavior
 
-A route name is required. The host is derived from it:
+A route name is required. The host is derived from its normalized form:
 
 ```text
 name = demo
@@ -254,18 +327,20 @@ host = demo.localhost
 
 Collision behavior:
 
-- Registering an already-live route should fail clearly unless replacement is explicitly requested.
-- Replacing a pinned route should require explicit replacement.
-- Stale/dead non-pinned routes may be replaceable after verification or TTL expiry.
+- Registering an existing route fails with `409 Conflict` unless force is explicitly requested.
+- Replacing or updating a pinned route also requires force.
+- Stale/dead non-pinned routes may be replaced with force or after removal.
 
 ## Security requirements
 
 - Bind router and targets to loopback only by default.
 - Do not listen on `0.0.0.0` unless explicitly requested.
-- Do not expose the admin API beyond loopback.
+- Do not expose the admin API beyond local access.
+- Reject requests that do not come from broadly local/Docker-style local development addresses; the exact allowlist can be refined during implementation.
+- Do not add token/auth complexity for v1.
+- Keep CORS restrictive/off by default; avoid browser-origin exposure rather than adding remote access conveniences.
 - Treat route registration as local-only control plane access.
 - Avoid serving arbitrary files from the router itself.
-- Be careful with future log capture because logs may contain secrets.
 
 ## WSL / Windows model
 
@@ -280,11 +355,11 @@ The router service and CLI do not have to be the same binary for the same OS tar
 Expected split:
 
 - A Windows router service can own the stable browser-facing port 80 and behave like a normal Windows background service.
-- Once the router behavior is working, the Windows-side server should be installed/run as a service, for example through NSSM.
+- Later, the Windows-side server should support being installed/run as a service, for example through NSSM.
 - A WSL CLI can talk to that router service over localhost and register WSL-hosted target ports.
 - Shared code can still live in one Go codebase where practical.
 
-This keeps the router close to the browser-facing side while allowing WSL tools to register routes without owning the router process.
+No special target-address translation is required for v1; this is expected to work like same-host localhost development.
 
 ## Port 80 behavior
 
@@ -301,13 +376,15 @@ Example commands:
 ```bash
 local-router status
 local-router register demo --port 5173 --title "Demo app"
+local-router register demo --port 5173 --title "Demo app" --pinned
+local-router register demo --port 3000 --force
 local-router unregister demo
 local-router routes
-local-router pin demo --port 5173 --title "Demo app"
+local-router pin demo
 local-router unpin demo
 ```
 
-The router service may be a separate executable or installed service wrapper, especially on Windows. NSSM is a likely service wrapper once the router server is ready to run persistently. The CLI should just interact with the service API like any other client.
+The router service may be a separate executable or installed service wrapper, especially on Windows. NSSM is likely later, but v1 does not need to implement service installation. The CLI should just interact with the service API like any other client.
 
 ## Implementation notes for Go
 
@@ -320,49 +397,45 @@ net/url
 sync
 ```
 
-Logging should use `github.com/charmbracelet/log` for human-readable output, with a `--json` option for structured output.
+Logging should use `github.com/charmbracelet/log` for conservative human-readable output.
 
 Route table shape:
 
 ```go
 type Route struct {
-    Name       string
-    Host       string
-    TargetHost string
-    Port       int
-    Title      string
-    Pinned     bool
-    PID        int
-    CWD        string
-    StartedBy  string
-    CreatedAt  time.Time
-    LastSeenAt time.Time
-    TTL        time.Duration
+    Name          string
+    Host          string
+    TargetHost    string
+    Port          int
+    Title         string
+    Pinned        bool
+    Exec          string
+    HeartbeatPath string
+    CreatedAt     time.Time
+    LastCheckAt   time.Time
+    Misses        int
 }
 ```
 
 Router lookup should be protected by a mutex or other concurrency-safe structure.
-
-## Open questions
-
-1. Should the dashboard be included in v1, or should v1 only expose CLI/API route inspection?
-2. Should NSSM be the Windows service wrapper/install approach for the router service, or is there a better fit?
-3. Should route definitions persist across router restart, and if so should only pinned routes persist?
 
 ## Proposed v1 scope
 
 - Project/tool name: `local-router`.
 - Router service listening on loopback port 80.
 - CLI that talks to the router service API.
-- In-memory route registry.
+- In-memory route registry only; no route persistence across restart.
 - Required route registration by name and port.
-- Optional title and pinned route metadata.
-- Register, heartbeat, unregister, list API.
+- Route name normalization to lowercase dash-delimited labels.
+- Optional title, exec metadata, heartbeat path, and pinned route metadata.
+- Register, unregister, and list API.
+- `--force` override for replace/update conflicts.
 - Host-header reverse proxy.
+- `dev.localhost` primary control page and `router.localhost` secondary control page.
 - Helpful unavailable page for pinned or registered routes with no reachable target.
-- Basic stale route cleanup for non-pinned routes.
+- Heartbeat-path cleanup for non-pinned routes.
 - Clear setup/startup error when port 80 cannot be used.
-- Conservative human-readable logging through `charmbracelet/log`, plus a `--json` mode.
-- Documentation for Windows browser, WSL CLI usage, and Windows service setup such as NSSM.
+- Conservative human-readable logging through `charmbracelet/log`.
+- Documentation for Windows browser, WSL CLI usage, and later Windows service setup such as NSSM.
 
 No actual implementation has been started yet.

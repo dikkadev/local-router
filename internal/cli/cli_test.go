@@ -74,7 +74,7 @@ func TestRoutesPinUnpinAndUnregister(t *testing.T) {
 func TestHelpCommands(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := Run([]string{"--help"}, Config{Stdout: &stdout, Stderr: &stderr})
-	if code != 0 || !strings.Contains(stdout.String(), "SERVICE COMMAND") || !strings.Contains(stdout.String(), "sudo ./local-router serve") {
+	if code != 0 || !strings.Contains(stdout.String(), "SERVICE COMMAND") || !strings.Contains(stdout.String(), `sudo env "PATH=$PATH" go run`) {
 		t.Fatalf("global help code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
 	}
 	stdout.Reset()

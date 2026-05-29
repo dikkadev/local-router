@@ -21,7 +21,7 @@ Start the actual router service:
 
 ```bash
 # Terminal 1: start the router service
-sudo ./local-router serve
+sudo env "PATH=$PATH" go run ./cmd/local-router serve
 ```
 
 Keep that process running. Then start any local web server separately. For example:
@@ -37,6 +37,8 @@ Register that target port with the router:
 # Terminal 3: register a friendly URL for the target server
 ./local-router register demo --port 5173 --title "Demo app"
 ```
+
+The CLI talks to `http://127.0.0.1` by default and sends `Host: dev.localhost` internally. That matters because some command-line tools do not resolve `dev.localhost` even when browsers handle `.localhost` correctly.
 
 The register command prints the URL:
 
@@ -61,18 +63,21 @@ The binary has built-in help:
 ./local-router register --help
 ```
 
-## Why `sudo go run` may fail
+## Running `go run` with sudo
 
-If `sudo go run ./cmd/local-router serve` says it cannot find `go`, that is usually because `sudo` uses root's restricted `PATH`, not your normal user shell setup. This is common when Go is installed through a user-level tool such as `mise`, `asdf`, or a custom `$HOME` path.
-
-Prefer building as your normal user and only using `sudo` for the built binary:
+If plain `sudo go run ./cmd/local-router serve` says it cannot find `go`, that is usually because `sudo` uses root's restricted `PATH`, not your normal user shell setup. Preserve your current `PATH` for that command:
 
 ```bash
-go build ./cmd/local-router
-sudo ./local-router serve
+sudo env "PATH=$PATH" go run ./cmd/local-router serve
 ```
 
-That is also closer to how the tool will run as a Linux/WSL service later.
+On this machine, Go is at `/usr/local/go/bin/go`, so this also works and does not depend on `PATH`:
+
+```bash
+sudo /usr/local/go/bin/go run ./cmd/local-router serve
+```
+
+If Go comes from a user-level tool such as `mise` or `asdf`, preserving `PATH` is usually still the right quick-test command. For a future service install, prefer a built binary or an absolute Go path so the service does not depend on an interactive shell setup.
 
 ## Port 80 note
 

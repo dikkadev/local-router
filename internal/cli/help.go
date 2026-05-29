@@ -45,7 +45,7 @@ CLIENT COMMANDS
 
 EXAMPLES
   # Terminal 1: start the router service
-  sudo ./local-router serve
+  sudo env "PATH=$PATH" go run ./cmd/local-router serve
 
   # Terminal 2: start any target web server yourself
   python3 -m http.server 5173 --bind 127.0.0.1
@@ -60,7 +60,9 @@ EXAMPLES
 NOTES
   local-router does not start your app/server. It only proxies to ports you register.
   The service binds port 80 for nice URLs, so Linux/WSL usually needs sudo or setcap.
-  If sudo cannot find go, build first and sudo the binary instead: go build ./cmd/local-router && sudo ./local-router serve.
+  The CLI talks to http://127.0.0.1 by default and sends Host: dev.localhost, so it does not depend on dev.localhost DNS resolution.
+  If sudo cannot find go, preserve PATH: sudo env "PATH=$PATH" go run ./cmd/local-router serve.
+  On this machine, an absolute path should also work: sudo /usr/local/go/bin/go run ./cmd/local-router serve.
 `
 
 func printHelp(w io.Writer) {
@@ -95,7 +97,8 @@ Start the long-running router/reverse-proxy service.
 Keep this process running while you use registered routes.
 
 EXAMPLES
-  sudo ./local-router serve
+  sudo env "PATH=$PATH" go run ./cmd/local-router serve
+  sudo /usr/local/go/bin/go run ./cmd/local-router serve
   ./local-router serve --addr 127.0.0.1:8080   # testing only; URLs need :8080
 `)
 	case "status", "routes", "unregister", "pin", "unpin":

@@ -30,7 +30,7 @@ func Run(args []string, cfg Config) int {
 		cfg.Stderr = os.Stderr
 	}
 	if cfg.BaseURL == "" {
-		cfg.BaseURL = envOrDefault("LOCAL_ROUTER_URL", "http://dev.localhost")
+		cfg.BaseURL = envOrDefault("LOCAL_ROUTER_URL", "http://127.0.0.1")
 	}
 	if len(args) == 0 || isHelpArg(args[0]) {
 		printHelp(cfg.Stdout)

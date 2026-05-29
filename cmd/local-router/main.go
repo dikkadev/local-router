@@ -16,11 +16,14 @@ import (
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "serve" {
 		addr := "127.0.0.1:80"
+		jsonLogs := false
 		args := os.Args[2:]
 		for i := 0; i < len(args); i++ {
 			switch args[i] {
 			case "--help", "-h", "help":
 				os.Exit(cli.Run([]string{"serve", "--help"}, cli.Config{}))
+			case "--json":
+				jsonLogs = true
 			case "--addr":
 				i++
 				if i >= len(args) {
@@ -32,6 +35,9 @@ func main() {
 				fmt.Fprintf(os.Stderr, "unknown serve option %s\n\n", args[i])
 				os.Exit(cli.Run([]string{"serve", "--help"}, cli.Config{}))
 			}
+		}
+		if jsonLogs {
+			log.SetFormatter(log.JSONFormatter)
 		}
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop()

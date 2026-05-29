@@ -22,6 +22,9 @@ Start the actual router service:
 ```bash
 # Terminal 1: start the router service
 sudo env "PATH=$PATH" go run ./cmd/local-router serve
+
+# Or use structured JSON logs
+sudo env "PATH=$PATH" go run ./cmd/local-router serve --json
 ```
 
 Keep that process running. Then start any local web server separately. For example:
@@ -69,6 +72,7 @@ If plain `sudo go run ./cmd/local-router serve` says it cannot find `go`, that i
 
 ```bash
 sudo env "PATH=$PATH" go run ./cmd/local-router serve
+sudo env "PATH=$PATH" go run ./cmd/local-router serve --json
 ```
 
 On this machine, Go is at `/usr/local/go/bin/go`, so this also works and does not depend on `PATH`:

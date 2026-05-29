@@ -39,7 +39,7 @@ func (s *Server) ListenAndServe(ctx context.Context, addr string) error {
 	if err != nil {
 		return fmt.Errorf("cannot start local-router on %s: %w", addr, err)
 	}
-	log.Infof("local-router listening on http://%s", addr)
+	log.Info("local-router listening", "addr", addr, "url", "http://"+addr)
 	s.StartHeartbeat(ctx)
 	httpServer := &http.Server{Handler: s, ReadHeaderTimeout: 10 * time.Second}
 	go func() {

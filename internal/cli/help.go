@@ -11,9 +11,10 @@ USAGE
   local-router <command> [options]
 
 SERVICE COMMAND
-  serve [--addr 127.0.0.1:80]
+  serve [--addr 127.0.0.1:80] [--json]
       Start the long-running local reverse proxy. This is the actual router.
       Keep it running while you use registered routes.
+      Use --json for structured JSON logs.
 
 CLIENT COMMANDS
   status
@@ -91,13 +92,18 @@ EXAMPLE
 `)
 	case "serve":
 		fmt.Fprint(w, `USAGE
-  local-router serve [--addr 127.0.0.1:80]
+  local-router serve [--addr 127.0.0.1:80] [--json]
 
 Start the long-running router/reverse-proxy service.
 Keep this process running while you use registered routes.
 
+OPTIONS
+  --addr <addr>  Listen address, default 127.0.0.1:80
+  --json         Emit structured JSON logs using charmbracelet/log
+
 EXAMPLES
   sudo env "PATH=$PATH" go run ./cmd/local-router serve
+  sudo env "PATH=$PATH" go run ./cmd/local-router serve --json
   sudo /usr/local/go/bin/go run ./cmd/local-router serve
   ./local-router serve --addr 127.0.0.1:8080   # testing only; URLs need :8080
 `)

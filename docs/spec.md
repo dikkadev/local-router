@@ -2,19 +2,24 @@
 
 ## Purpose
 
-Build a Go-based local development tool that makes short-lived local web servers easy to open from a Windows browser while the actual server runs ad hoc, likely from WSL, with logs/stdout still attached to the command that started it.
+Build a local development router that gives ad hoc local web servers stable, meaningful `.localhost` URLs without requiring the user to remember ports, manually avoid port collisions, edit hosts files, or hand-edit/reload reverse-proxy config.
 
-The tool should avoid requiring the user to remember ports, manually pick non-conflicting ports, or edit proxy configuration for each run.
+The router does not start or own the web servers behind those URLs. A separate process starts whatever local server it wants, then registers a route by giving the router a required name and local target port, plus optional display metadata.
 
 ## Problem statement
 
-A command starts a temporary web server on WSL. The user accesses it from a Windows browser. Raw ports are inconvenient and unclear:
+Local development servers are usually opened through raw ports:
 
 ```text
 http://localhost:5173
 ```
 
-They also create a choice between living with port collisions on familiar ports or using random/high ports that are hard to remember and identify.
+That is inconvenient because:
+
+- familiar ports collide;
+- random/high ports are hard to remember;
+- the URL says nothing about what the server is;
+- switching between multiple temporary servers becomes messy.
 
 The desired experience is a stable, meaningful URL:
 
@@ -29,6 +34,7 @@ without per-run Windows hosts-file edits and without hand-editing/reloading Cadd
 - General-purpose replacement for Caddy, nginx, or Traefik.
 - Required custom DNS setup.
 - Required Windows hosts-file mutation.
+- Starting, supervising, or owning the target web servers.
 - Internet/LAN exposure; this is loopback-only.
 - HTTPS as a v1 requirement, though it should remain possible later.
 
@@ -36,35 +42,46 @@ without per-run Windows hosts-file edits and without hand-editing/reloading Cadd
 
 ### Router
 
-A small persistent local daemon that:
+A small persistent local service that:
 
-- Listens on loopback HTTP, ideally `127.0.0.1:80`.
+- Listens on loopback HTTP port 80.
 - Routes requests by `Host` header.
-- Reverse-proxies registered hosts to target ports.
-- Serves its own dashboard/control plane.
-- Exposes a small registration API.
-- Removes stale routes when registered targets die or stop heartbeating.
+- Reverse-proxies registered hosts to local target ports.
+- Exposes a small REST registration API.
+- Can be controlled by a CLI, but is not specific to CLI callers.
+- Removes or marks stale routes when registered targets disappear or stop heartbeating.
 
-### Routed server
+### Registered route
 
-An ephemeral local web server. It should:
+A route maps a required name to a local target port.
 
-- Bind to loopback, usually `127.0.0.1:0`, letting the OS choose a free port.
-- Register a friendly hostname with the router.
-- Print/open the stable URL.
-- Keep stdout/log output attached to the command that started it.
-- Unregister on normal exit.
-- Heartbeat while alive so crashes are cleaned up.
+Required registration values:
+
+- `name`: the subdomain label, such as `demo` for `demo.localhost`.
+- `port`: the local target port to proxy to.
+
+Optional registration values:
+
+- `title`: a slightly longer display title.
+- `targetHost`: defaults to `127.0.0.1`.
+- `pinned`: whether the route should remain reserved even when no target is currently responding.
+- process metadata such as PID/CWD/command, if a caller wants to provide it.
+- heartbeat/TTL settings, if the route should expire automatically.
+
+The router does not choose generated names. Callers must provide the route name they want.
+
+### Target server
+
+A target server is any local HTTP server that another tool or user starts separately. It should bind to loopback. It may register/unregister itself through the API or rely on a wrapper script/CLI to do that.
 
 ## Default URL model
 
 Use `.localhost` by default:
 
 ```text
-http://dev.localhost       router dashboard
-http://demo.localhost      routed server named demo
-http://plot.localhost      routed server named plot
-http://run-8f3a.localhost  generated route name
+http://local-router.localhost  router dashboard/control page
+http://demo.localhost          route named demo
+http://plot.localhost          route named plot
 ```
 
 Rationale:
@@ -78,72 +95,59 @@ Rationale:
 
 Future optional install steps may support:
 
-- One fixed hosts alias for the dashboard, e.g. `http://art`.
+- One fixed hosts alias for the dashboard.
 - A local wildcard DNS resolver for suffixes like `*.x` or `*.art`.
 
 These should not be required for v1 because a normal hosts file generally cannot express wildcard subdomains.
 
-## Expected UX
+## Expected CLI UX
 
-Example serve command:
+The CLI registers, lists, updates, and removes routes. It does not run the target server.
+
+Example registration:
 
 ```bash
-local-router serve ./demo --name demo
+local-router register demo --port 5173 --title "Demo app"
 ```
 
-Output:
+Minimal successful output:
 
 ```text
-Serving:
-  http://demo.localhost
-
-Dashboard:
-  http://dev.localhost
-
-Logs:
-  GET /                    200
-  GET /assets/app.js       200
+http://demo.localhost
 ```
 
-If the router is not running, `serve` should ideally try to start it or give a clear instruction.
+The first line should be the URL so it is easy to copy, pipe, parse, or open. Normal successful commands should stay quiet beyond essential output. Request logs from proxied traffic should not be printed by default; stdout has a specific use as command output, not as a live access log.
 
-If port 80 is unavailable or requires privileges, the tool may fall back to a configured non-privileged port such as `7777`, producing URLs like:
-
-```text
-http://demo.localhost:7777
-```
+If the router is not running, the CLI should fail clearly and say that the router service is not running.
 
 ## Dashboard requirements
 
-The router should serve a small dashboard at `dev.localhost` showing active and recently stale routes.
+If included, the router dashboard should be small and focused. It should show active and pinned routes and make it easy to open/copy route URLs.
 
 Suggested columns:
 
 - Name
 - URL
-- Status: live, unhealthy, stale, removing
-- Age / started time
-- Last heartbeat
-- Target URL
-- PID, if provided
-- CWD / command, if provided
+- Title, if provided
+- Status: live, unavailable, stale, pinned
+- Target host/port
+- Last heartbeat, if applicable
+- PID/CWD/command, if provided
 
 Suggested actions:
 
 - Open route
 - Copy URL
-- Unregister/stop route
-- Rename route, optional later
-- Pin route, optional later
-- View logs, optional later if logs are exposed by the routed server or captured intentionally
+- Unregister route
+- Pin/unpin route
 
-The dashboard should live-update. Prefer Server-Sent Events for route table changes:
+Pinned routes stay reserved even if nothing is currently backing the target port. When a pinned route has no reachable target, the router should serve its own helpful error page for that hostname instead of treating the name as unregistered.
+
+If live dashboard updates are implemented, Server-Sent Events are a reasonable fit for route table changes:
 
 ```text
 GET /_router/events
 ```
-
-Use WebSockets only if later bidirectional terminal-like interaction is needed.
 
 ## Registration API draft
 
@@ -156,14 +160,22 @@ PUT /_router/routes/{name}
 Content-Type: application/json
 
 {
-  "host": "demo.localhost",
-  "target": "http://127.0.0.1:49173",
-  "title": "Demo",
+  "port": 5173,
+  "title": "Demo app",
+  "targetHost": "127.0.0.1",
+  "pinned": false,
   "pid": 12345,
   "cwd": "/home/me/project",
-  "startedBy": "local-router serve ./demo --name demo",
+  "startedBy": "npm run dev",
   "ttlSeconds": 10
 }
+```
+
+The route host is derived from the route name:
+
+```text
+name = demo
+host = demo.localhost
 ```
 
 ### Heartbeat
@@ -195,7 +207,7 @@ Example events:
 ```json
 { "type": "route_added", "name": "demo" }
 { "type": "route_changed", "name": "demo" }
-{ "type": "route_unhealthy", "name": "demo" }
+{ "type": "route_unavailable", "name": "demo" }
 { "type": "route_removed", "name": "demo" }
 ```
 
@@ -204,51 +216,45 @@ Example events:
 For normal browser requests:
 
 1. Strip any port from `req.Host`.
-2. If host is the router dashboard host, serve the dashboard/API.
+2. If host is the router dashboard/control host, serve the router UI/API.
 3. Else look up host in the route table.
-4. If found, reverse proxy to its target.
-5. If missing, return a helpful 404 page explaining that no route is registered for the host and link to the dashboard.
+4. If the route exists and its target is reachable, reverse proxy to the target.
+5. If the route exists but no target is reachable, serve a helpful route-unavailable page.
+6. If the route is missing, return a helpful 404 page explaining that no route is registered for the host.
 
 Reverse proxy should support:
 
 - Normal HTTP methods.
 - Streaming responses without unwanted buffering.
-- WebSocket upgrades for interactive routes.
+- WebSocket upgrades.
 - SSE passthrough.
 
 ## Lifecycle and cleanup
 
 Use layered cleanup:
 
-- Registering process unregisters route on normal exit.
-- Registering process heartbeats periodically while alive.
-- Router expires routes whose heartbeat TTL elapses.
-- Router may periodically health-check targets and mark/remove dead routes.
+- Callers may unregister routes on normal exit.
+- Callers may heartbeat periodically while alive.
+- Non-pinned routes with a heartbeat TTL may expire when heartbeats stop.
+- The router may health-check targets and mark them unavailable.
+- Pinned routes remain registered even when unavailable.
 
-Stale entries should not permanently block names.
+Stale non-pinned entries should not permanently block names.
 
 ## Naming behavior
 
-A route has both a short `name` and a full `host`.
-
-Default host derivation:
+A route name is required. The host is derived from it:
 
 ```text
 name = demo
 host = demo.localhost
 ```
 
-If a generated name is needed:
+Collision behavior:
 
-```text
-run-8f3a.localhost
-```
-
-Suggested collision behavior:
-
-- Explicit `--name demo`: fail clearly if live route exists unless `--replace` is passed.
-- Generated/default names: auto-suffix or generate a fresh name.
-- Stale/dead route: allow replacement after verification or TTL expiry.
+- Registering an already-live route should fail clearly unless replacement is explicitly requested.
+- Replacing a pinned route should require explicit replacement.
+- Stale/dead non-pinned routes may be replaceable after verification or TTL expiry.
 
 ## Security requirements
 
@@ -259,54 +265,46 @@ Suggested collision behavior:
 - Avoid serving arbitrary files from the router itself.
 - Be careful with future log capture because logs may contain secrets.
 
-## WSL / Windows considerations
+## WSL / Windows model
 
 Primary user environment:
 
-- Tool runs in WSL.
-- Browser runs on Windows.
+- The browser runs on Windows.
+- Many target servers and CLI commands run inside WSL.
 - Windows commonly reaches WSL servers through `localhost:<port>`.
 
-Open implementation question:
+The router service and CLI do not have to be the same binary for the same OS target.
 
-- Should the router run in WSL for simplicity, or on Windows for more robust Windows-facing behavior?
+Expected split:
 
-Initial recommendation:
+- A Windows router service can own the stable browser-facing port 80 and behave like a normal Windows background service.
+- A WSL CLI can talk to that router service over localhost and register WSL-hosted target ports.
+- Shared code can still live in one Go codebase where practical.
 
-- Implement and test WSL-side router first because it is easiest for a Go CLI used from WSL.
-- Keep the design portable enough for a future Windows-side router binary or service.
+This keeps the router close to the browser-facing side while allowing WSL tools to register routes without owning the router process.
 
 ## Port 80 behavior
 
-Nice URLs without `:port` require the router to listen on HTTP port 80.
+Nice URLs without `:port` are a hard requirement. The router should listen on HTTP port 80 on loopback.
 
-v1 should handle this explicitly:
+If the router service cannot bind port 80, setup/startup should fail clearly and explain the conflict or permission problem. Falling back to URLs with explicit ports is not a v1 feature.
 
-- Try configured router address, default `127.0.0.1:80`.
-- If binding fails, report the reason clearly.
-- Optional fallback to `127.0.0.1:7777` for development mode.
-- Document that port 80 may need privileges or may conflict with IIS, Docker, other dev tools, etc.
+## Command shape
 
-## Possible command shape
+The CLI controls and registers with the router service. It does not start target servers.
 
-One binary can have multiple modes:
+Example commands:
 
 ```bash
-local-router router start
-local-router router status
-local-router router stop
-local-router router routes
-local-router serve ./demo --name demo
+local-router status
+local-router register demo --port 5173 --title "Demo app"
+local-router unregister demo
+local-router routes
+local-router pin demo --port 5173 --title "Demo app"
+local-router unpin demo
 ```
 
-Alternative binary split:
-
-```bash
-local-router-daemon
-local-router serve ./demo
-```
-
-The one-binary mode is likely simpler for installation and discovery.
+The router service may be a separate executable or installed service wrapper, especially on Windows. The CLI should just interact with the service API like any other client.
 
 ## Implementation notes for Go
 
@@ -325,8 +323,10 @@ Route table shape:
 type Route struct {
     Name       string
     Host       string
-    Target     *url.URL
+    TargetHost string
+    Port       int
     Title      string
+    Pinned     bool
     PID        int
     CWD        string
     StartedBy  string
@@ -340,25 +340,23 @@ Router lookup should be protected by a mutex or other concurrency-safe structure
 
 ## Open questions
 
-1. Project/tool name: should the command be `local-router`, `router`, or something else?
-2. Should v1 include the server-starting command itself, or only the reusable router and registration client?
-3. Should the router auto-start from `serve`, and if so how should it daemonize under WSL?
-4. What should happen when port 80 is unavailable: hard fail, fallback port, or guided install?
-5. Should the dashboard be plain server-rendered HTML first, or a small bundled frontend?
-6. Should route definitions persist across router restart, or should all routes be ephemeral only?
-7. Is Windows-side router support required before implementation, or can it be a later compatibility target?
+1. Should the dashboard be included in v1, or should v1 only expose CLI/API route inspection?
+2. What Windows service wrapper/install approach should be used for the router service?
+3. Should route definitions persist across router restart, and if so should only pinned routes persist?
 
 ## Proposed v1 scope
 
-- Go module and CLI skeleton.
-- Router process listening on loopback.
+- Project/tool name: `local-router`.
+- Router service listening on loopback port 80.
+- CLI that talks to the router service API.
 - In-memory route registry.
+- Required route registration by name and port.
+- Optional title and pinned route metadata.
 - Register, heartbeat, unregister, list API.
 - Host-header reverse proxy.
-- Dashboard host at `dev.localhost`.
-- SSE events for dashboard live updates.
-- Basic stale route cleanup.
-- Clear port 80/fallback behavior.
-- Documentation for WSL/Windows browser usage.
+- Helpful unavailable page for pinned or registered routes with no reachable target.
+- Basic stale route cleanup for non-pinned routes.
+- Clear setup/startup error when port 80 cannot be used.
+- Documentation for Windows browser and WSL CLI usage.
 
 No actual implementation has been started yet.

@@ -101,17 +101,21 @@ func (s *Server) serveAPI(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, "invalid JSON request")
 			return
 		}
-		view, err := s.Store.Register(name, req, r.URL.Query().Get("force") == "true")
+		force := r.URL.Query().Get("force") == "true"
+		view, err := s.Store.Register(name, req, force)
 		if err != nil {
 			writeStoreError(w, err)
 			return
 		}
+		log.Info("route registered", "name", view.Name, "url", view.URL, "target", net.JoinHostPort(view.TargetHost, strconv.Itoa(view.Port)), "pinned", view.Pinned, "force", force)
 		writeJSON(w, http.StatusOK, view)
 	case http.MethodDelete:
+		normalizedName, _ := NormalizeName(name)
 		if err := s.Store.Delete(name); err != nil {
 			writeStoreError(w, err)
 			return
 		}
+		log.Info("route unregistered", "name", normalizedName, "url", urlForName(normalizedName))
 		w.WriteHeader(http.StatusNoContent)
 	case http.MethodPatch:
 		var req struct {
@@ -125,6 +129,11 @@ func (s *Server) serveAPI(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			writeStoreError(w, err)
 			return
+		}
+		if view.Pinned {
+			log.Info("route pinned", "name", view.Name, "url", view.URL)
+		} else {
+			log.Info("route unpinned", "name", view.Name, "url", view.URL)
 		}
 		writeJSON(w, http.StatusOK, view)
 	default:

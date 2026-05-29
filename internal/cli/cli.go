@@ -32,16 +32,23 @@ func Run(args []string, cfg Config) int {
 	if cfg.BaseURL == "" {
 		cfg.BaseURL = envOrDefault("LOCAL_ROUTER_URL", "http://dev.localhost")
 	}
-	if len(args) == 0 {
-		usage(cfg.Stderr)
+	if len(args) == 0 || isHelpArg(args[0]) {
+		printHelp(cfg.Stdout)
+		return 0
+	}
+	if len(args) > 1 && isHelpArg(args[1]) {
+		if printCommandHelp(cfg.Stdout, args[0]) {
+			return 0
+		}
+		printHelp(cfg.Stdout)
 		return 2
 	}
 	client := &Client{BaseURL: strings.TrimRight(cfg.BaseURL, "/"), HTTP: &http.Client{Timeout: 5 * time.Second}}
 	var err error
 	switch args[0] {
 	case "serve":
-		fmt.Fprintln(cfg.Stderr, "serve is only available from cmd/local-router main")
-		return 2
+		printCommandHelp(cfg.Stdout, "serve")
+		return 0
 	case "status":
 		err = status(client, cfg.Stdout)
 	case "register":
@@ -55,7 +62,8 @@ func Run(args []string, cfg Config) int {
 	case "unpin":
 		err = setPinned(client, args[1:], false, cfg.Stdout)
 	default:
-		usage(cfg.Stderr)
+		fmt.Fprintf(cfg.Stderr, "unknown command %q\n\n", args[0])
+		printHelp(cfg.Stderr)
 		return 2
 	}
 	if err != nil {
@@ -247,10 +255,6 @@ func friendlyError(err error) string {
 		return "local-router service is not running; start it with `local-router serve`"
 	}
 	return err.Error()
-}
-
-func usage(w io.Writer) {
-	fmt.Fprintln(w, "usage: local-router serve|status|register|unregister|routes|pin|unpin")
 }
 
 func envOrDefault(name, fallback string) string {

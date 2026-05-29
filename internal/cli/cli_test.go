@@ -71,6 +71,19 @@ func TestRoutesPinUnpinAndUnregister(t *testing.T) {
 	}
 }
 
+func TestHelpCommands(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := Run([]string{"--help"}, Config{Stdout: &stdout, Stderr: &stderr})
+	if code != 0 || !strings.Contains(stdout.String(), "SERVICE COMMAND") || !strings.Contains(stdout.String(), "sudo ./local-router serve") {
+		t.Fatalf("global help code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
+	}
+	stdout.Reset()
+	code = Run([]string{"register", "--help"}, Config{Stdout: &stdout, Stderr: &stderr})
+	if code != 0 || !strings.Contains(stdout.String(), "--heartbeat-path") {
+		t.Fatalf("register help code=%d stdout=%q", code, stdout.String())
+	}
+}
+
 func TestAPIClientReportsServerErrors(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"boom"}`, http.StatusConflict)

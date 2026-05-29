@@ -342,22 +342,19 @@ Collision behavior:
 - Treat route registration as local-only control plane access.
 - Avoid serving arbitrary files from the router itself.
 
-## WSL / Windows model
+## Linux / WSL model
 
 Primary user environment:
 
-- The browser runs on Windows.
-- Many target servers and CLI commands run inside WSL.
-- Windows commonly reaches WSL servers through `localhost:<port>`.
-
-The router service and CLI do not have to be the same binary for the same OS target.
+- The router service runs on Linux/WSL and owns loopback port 80.
+- Target servers and CLI commands usually run in the same Linux/WSL environment.
+- The browser may run on Windows and reach WSL loopback services through `localhost` / `.localhost` behavior when available.
 
 Expected split:
 
-- A Windows router service can own the stable browser-facing port 80 and behave like a normal Windows background service.
-- Later, the Windows-side server should support being installed/run as a service, for example through NSSM.
-- A WSL CLI can talk to that router service over localhost and register WSL-hosted target ports.
-- Shared code can still live in one Go codebase where practical.
+- The router service is a long-running Linux/WSL process.
+- Later, setup should support installing/running it as a Linux/WSL service, for example through a systemd user/system unit where available.
+- The CLI talks to that router service over localhost and registers target ports.
 
 No special target-address translation is required for v1; this is expected to work like same-host localhost development.
 
@@ -384,7 +381,7 @@ local-router pin demo
 local-router unpin demo
 ```
 
-The router service may be a separate executable or installed service wrapper, especially on Windows. NSSM is likely later, but v1 does not need to implement service installation. The CLI should just interact with the service API like any other client.
+The router service may be a separate long-running process or installed Linux/WSL service later, but v1 does not need to implement service installation. The CLI should just interact with the service API like any other client.
 
 ## Implementation notes for Go
 
@@ -436,6 +433,6 @@ Router lookup should be protected by a mutex or other concurrency-safe structure
 - Heartbeat-path cleanup for non-pinned routes.
 - Clear setup/startup error when port 80 cannot be used.
 - Conservative human-readable logging through `charmbracelet/log`.
-- Documentation for Windows browser, WSL CLI usage, and later Windows service setup such as NSSM.
+- Documentation for Linux/WSL usage and later Linux/WSL service setup.
 
 Initial implementation lives under `cmd/local-router` and `internal/`; this spec remains the v1 behavioral reference.

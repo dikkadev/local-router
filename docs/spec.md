@@ -17,7 +17,7 @@ http://localhost:5173
 The desired experience is a stable, meaningful URL:
 
 ```text
-http://demo.localhost
+http://some-thing.localhost
 ```
 
 without per-run Windows hosts-file edits and without hand-editing/reloading Caddy/nginx config.
@@ -60,7 +60,7 @@ An ephemeral web server started by a user-facing CLI command. It should:
 Use `.localhost` by default:
 
 ```text
-http://art.localhost       router dashboard
+http://dev.localhost       router dashboard
 http://demo.localhost      artifact named demo
 http://plot.localhost      artifact named plot
 http://run-8f3a.localhost  generated artifact name

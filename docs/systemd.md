@@ -4,13 +4,25 @@
 
 This machine appears to use systemd (`ps -p 1 -o comm=` reports `systemd`).
 
-## Install the binary
+## Install the CLI
 
-From the repo root:
+Install the CLI with Go:
 
 ```bash
-go build -o bin/local-router ./cmd/local-router
-sudo install -m 0755 bin/local-router /usr/local/bin/local-router
+go install forge.dikka.dev/lab/local-router/cmd/local-router@latest
+```
+
+The systemd unit uses a stable absolute path, so copy the installed CLI there:
+
+```bash
+sudo install -m 0755 "$(go env GOPATH)/bin/local-router" /usr/local/bin/local-router
+```
+
+If you are working from a local checkout and want that exact version instead of `@latest`, run this from the repo root first:
+
+```bash
+go install ./cmd/local-router
+sudo install -m 0755 "$(go env GOPATH)/bin/local-router" /usr/local/bin/local-router
 ```
 
 ## Install the system service
@@ -38,11 +50,21 @@ http://dev.localhost
 http://router.localhost
 ```
 
-## Update after rebuilding
+## Update
+
+From the remote source:
 
 ```bash
-go build -o bin/local-router ./cmd/local-router
-sudo install -m 0755 bin/local-router /usr/local/bin/local-router
+go install forge.dikka.dev/lab/local-router/cmd/local-router@latest
+sudo install -m 0755 "$(go env GOPATH)/bin/local-router" /usr/local/bin/local-router
+sudo systemctl restart local-router@$USER.service
+```
+
+Or from a local checkout:
+
+```bash
+go install ./cmd/local-router
+sudo install -m 0755 "$(go env GOPATH)/bin/local-router" /usr/local/bin/local-router
 sudo systemctl restart local-router@$USER.service
 ```
 
@@ -81,7 +103,7 @@ AmbientCapabilities=CAP_NET_BIND_SERVICE
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 ```
 
-That should let the non-root service bind `127.0.0.1:80`. If you run the binary manually without systemd, use `sudo local-router serve` or grant the binary the bind capability:
+That should let the non-root service bind `127.0.0.1:80`. If you run the CLI manually without systemd, grant the installed CLI the bind capability:
 
 ```bash
 sudo setcap 'cap_net_bind_service=+ep' /usr/local/bin/local-router

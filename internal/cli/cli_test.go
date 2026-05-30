@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"local-router/internal/router"
+	"forge.dikka.dev/lab/local-router/internal/router"
 )
 
 func TestRegisterPrintsOnlyURL(t *testing.T) {

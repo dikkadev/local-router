@@ -1,4 +1,4 @@
-module local-router
+module forge.dikka.dev/lab/local-router
 
 go 1.26.3
 

@@ -9,8 +9,8 @@ import (
 
 	"github.com/charmbracelet/log"
 
-	"local-router/internal/cli"
-	"local-router/internal/router"
+	"forge.dikka.dev/lab/local-router/internal/cli"
+	"forge.dikka.dev/lab/local-router/internal/router"
 )
 
 func main() {

@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"local-router/internal/router"
+	"forge.dikka.dev/lab/local-router/internal/router"
 )
 
 type Config struct {

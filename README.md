@@ -66,6 +66,26 @@ The binary has built-in help:
 ./local-router register --help
 ```
 
+## Pi package / skill
+
+This repo is also a Pi package. It exposes the `local-router` skill from [`skills/local-router/SKILL.md`](skills/local-router/SKILL.md), so Pi agents can learn the CLI workflow from the same repo as the tool.
+
+Install from the remote repo after pushing a commit or tag:
+
+```bash
+pi install ssh://git@git.dikka.dev:2222/lab/local-router.git@<ref>
+```
+
+For local development of the skill before pushing:
+
+```bash
+pi install /home/dikka/projs/local-router
+```
+
+## Service setup
+
+For persistent Linux/WSL systemd setup, see [`docs/systemd.md`](docs/systemd.md). The packaged unit template runs the router as your normal Linux user while granting only the low-port bind capability needed for `127.0.0.1:80`.
+
 ## Running `go run` with sudo
 
 If plain `sudo go run ./cmd/local-router serve` says it cannot find `go`, that is usually because `sudo` uses root's restricted `PATH`, not your normal user shell setup. Preserve your current `PATH` for that command:

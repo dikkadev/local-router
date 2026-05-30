@@ -1,0 +1,16 @@
+{
+  "name": "local-router-pi-package",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Pi package for the local-router CLI skill.",
+  "keywords": [
+    "pi-package",
+    "pi-skill",
+    "local-router"
+  ],
+  "pi": {
+    "skills": [
+      "./skills"
+    ]
+  }
+}

@@ -9,7 +9,7 @@ This machine appears to use systemd (`ps -p 1 -o comm=` reports `systemd`).
 Install the CLI with Go:
 
 ```bash
-go install forge.dikka.dev/lab/local-router/cmd/local-router@latest
+go install forge.dikka.dev/lab/local-router@latest
 ```
 
 The systemd unit uses a stable absolute path, so copy the installed CLI there:
@@ -21,7 +21,7 @@ sudo install -m 0755 "$(go env GOPATH)/bin/local-router" /usr/local/bin/local-ro
 If you are working from a local checkout and want that exact version instead of `@latest`, run this from the repo root first:
 
 ```bash
-go install ./cmd/local-router
+go install .
 sudo install -m 0755 "$(go env GOPATH)/bin/local-router" /usr/local/bin/local-router
 ```
 
@@ -55,7 +55,7 @@ http://router.localhost
 From the remote source:
 
 ```bash
-go install forge.dikka.dev/lab/local-router/cmd/local-router@latest
+go install forge.dikka.dev/lab/local-router@latest
 sudo install -m 0755 "$(go env GOPATH)/bin/local-router" /usr/local/bin/local-router
 sudo systemctl restart local-router@$USER.service
 ```
@@ -63,7 +63,7 @@ sudo systemctl restart local-router@$USER.service
 Or from a local checkout:
 
 ```bash
-go install ./cmd/local-router
+go install .
 sudo install -m 0755 "$(go env GOPATH)/bin/local-router" /usr/local/bin/local-router
 sudo systemctl restart local-router@$USER.service
 ```

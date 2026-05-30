@@ -21,7 +21,7 @@ local-router serve --help
 local-router register --help
 ```
 
-Install with `go install forge.dikka.dev/lab/local-router/cmd/local-router@latest`, or from a checkout with `go install ./cmd/local-router`. The longer behavioral reference is `docs/spec.md`; service setup notes are in `docs/systemd.md`.
+Install with `go install forge.dikka.dev/lab/local-router@latest`, or from a checkout with `go install .`. The longer behavioral reference is `docs/spec.md`; service setup notes are in `docs/systemd.md`.
 
 ## Light preflight
 
@@ -33,7 +33,7 @@ local-router status
 local-router routes
 ```
 
-If the CLI is not installed but the current directory is the repo, prefer `go install ./cmd/local-router` before continuing. If `status` says the service is not running, explain that the router service must be started before routes can be registered.
+If the CLI is not installed but the current directory is the repo, prefer `go install .` before continuing. If `status` says the service is not running, explain that the router service must be started before routes can be registered.
 
 ## Normal workflow
 

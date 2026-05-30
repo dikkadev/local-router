@@ -435,4 +435,4 @@ Router lookup should be protected by a mutex or other concurrency-safe structure
 - Conservative human-readable logging through `charmbracelet/log`.
 - Documentation for Linux/WSL usage and later Linux/WSL service setup.
 
-Initial implementation lives under `cmd/local-router` and `internal/`; this spec remains the v1 behavioral reference.
+Initial implementation lives in the root `main.go` command and `internal/`; this spec remains the v1 behavioral reference.

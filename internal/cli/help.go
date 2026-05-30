@@ -45,14 +45,20 @@ CLIENT COMMANDS
       Allow heartbeat cleanup to remove a stale route.
 
 EXAMPLES
+  # One-time install from Git source
+  go install forge.dikka.dev/lab/local-router@latest
+
+  # One-time low-port bind permission for the installed CLI
+  sudo setcap 'cap_net_bind_service=+ep' "$(go env GOPATH)/bin/local-router"
+
   # Terminal 1: start the router service
-  sudo env "PATH=$PATH" go run ./cmd/local-router serve
+  local-router serve
 
   # Terminal 2: start any target web server yourself
   python3 -m http.server 5173 --bind 127.0.0.1
 
   # Terminal 3: register the target port
-  ./local-router register demo --port 5173 --title "Demo app"
+  local-router register demo --port 5173 --title "Demo app"
 
   # Open these in a browser
   http://demo.localhost
@@ -60,10 +66,8 @@ EXAMPLES
 
 NOTES
   local-router does not start your app/server. It only proxies to ports you register.
-  The service binds port 80 for nice URLs, so Linux/WSL usually needs sudo or setcap.
+  The service binds port 80 for nice URLs, so Linux/WSL usually needs setcap, systemd capabilities, or sudo.
   The CLI talks to http://127.0.0.1 by default and sends Host: dev.localhost, so it does not depend on dev.localhost DNS resolution.
-  If sudo cannot find go, preserve PATH: sudo env "PATH=$PATH" go run ./cmd/local-router serve.
-  On this machine, an absolute path should also work: sudo /usr/local/go/bin/go run ./cmd/local-router serve.
 `
 
 func printHelp(w io.Writer) {
@@ -88,7 +92,7 @@ OPTIONS
   --force                   Replace existing route
 
 EXAMPLE
-  ./local-router register demo --port 5173 --title "Demo app"
+  local-router register demo --port 5173 --title "Demo app"
 `)
 	case "serve":
 		fmt.Fprint(w, `USAGE
@@ -102,10 +106,9 @@ OPTIONS
   --json         Emit structured JSON logs using charmbracelet/log
 
 EXAMPLES
-  sudo env "PATH=$PATH" go run ./cmd/local-router serve
-  sudo env "PATH=$PATH" go run ./cmd/local-router serve --json
-  sudo /usr/local/go/bin/go run ./cmd/local-router serve
-  ./local-router serve --addr 127.0.0.1:8080   # testing only; URLs need :8080
+  local-router serve
+  local-router serve --json
+  local-router serve --addr 127.0.0.1:8080   # testing only; URLs need :8080
 `)
 	case "status", "routes", "unregister", "pin", "unpin":
 		fmt.Fprintf(w, "USAGE\n  local-router %s", command)

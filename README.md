@@ -9,7 +9,7 @@ See [`docs/spec.md`](docs/spec.md) for the original v1 specification.
 Install the CLI directly from the Git source:
 
 ```bash
-go install forge.dikka.dev/lab/local-router/cmd/local-router@latest
+go install forge.dikka.dev/lab/local-router@latest
 ```
 
 Make sure Go's install directory is on your `PATH`:
@@ -121,7 +121,7 @@ For persistent Linux/WSL systemd setup, see [`docs/systemd.md`](docs/systemd.md)
 If you already cloned the repository and want to install that exact checkout instead of `@latest`, run this from the repo root:
 
 ```bash
-go install ./cmd/local-router
+go install .
 ```
 
 ## Port 80 note

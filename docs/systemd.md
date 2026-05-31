@@ -52,23 +52,31 @@ http://router.localhost
 
 ## Update
 
+The systemd service runs `/usr/local/bin/local-router`, so updating means building or downloading a new CLI binary, copying it to that path, and restarting the service. Stop the service before replacing the binary so the running service and the installed file are never out of sync.
+
 From the remote source:
 
 ```bash
+sudo systemctl stop local-router@$USER.service
 go install forge.dikka.dev/lab/local-router@latest
 sudo install -m 0755 "$(go env GOPATH)/bin/local-router" /usr/local/bin/local-router
-sudo systemctl restart local-router@$USER.service
+sudo systemctl start local-router@$USER.service
+local-router status
 ```
 
 Or from a local checkout:
 
 ```bash
+sudo systemctl stop local-router@$USER.service
 go install .
 sudo install -m 0755 "$(go env GOPATH)/bin/local-router" /usr/local/bin/local-router
-sudo systemctl restart local-router@$USER.service
+sudo systemctl start local-router@$USER.service
+local-router status
 ```
 
-Route state is in memory, so restarting the service clears registered routes, including pinned routes.
+If the service is not running yet, skip the `stop` command and run the install/copy/start steps.
+
+Route state is in memory, so stopping or restarting the service clears registered routes, including pinned routes. Re-register any routes you still need after the update.
 
 ## Stop or remove
 

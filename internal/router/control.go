@@ -6,11 +6,11 @@ const controlHTML = `<!doctype html>
 <meta charset="utf-8">
 <title>local-router</title>
 <style>
-body{font-family:system-ui,sans-serif;margin:2rem;line-height:1.4;color:#e8e8e8;background:#0a0a0a}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #333;padding:.45rem;text-align:left}code{background:#1a1a1a;color:#f0f0f0;padding:.1rem .25rem}button{cursor:pointer;color:#e8e8e8;background:#1a1a1a;border:1px solid #555}a{color:#8ab4f8}.muted{color:#aaa}
+body{font-family:system-ui,sans-serif;margin:2rem;line-height:1.4;color:#e8e8e8;background:#0a0a0a}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #333;padding:.45rem;text-align:left}code{background:#1a1a1a;color:#f0f0f0;padding:.1rem .25rem}button{cursor:pointer;color:#e8e8e8;background:#1a1a1a;border:1px solid #555}button:hover{background:#242424}button:active{background:#111}button:focus-visible{outline:2px solid #8ab4f8;outline-offset:2px}a{color:#8ab4f8}h1{display:flex;align-items:center;gap:1rem}.icon-button{display:inline-grid;place-items:center;width:1.75rem;height:1.75rem;padding:0;font-size:1rem;line-height:1}.icon-button svg{display:block;width:1em;height:1em}.spinning{animation:spin .35s linear}@keyframes spin{to{transform:rotate(360deg)}}.muted{color:#aaa}
 </style>
 </head>
 <body>
-<h1>local-router</h1>
+<h1><span>local-router</span><button id="reload" class="icon-button" type="button" title="Reload routes" aria-label="Reload routes"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.7 6.3A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.8-4.3L13 11h8V3z"/></svg></button></h1>
 <p class="muted">Stable local routes. API root: <code>/router/routes</code>.</p>
 <table>
 <thead><tr><th>Name</th><th>URL</th><th>Title</th><th>Status</th><th>Target</th><th>Heartbeat</th><th>Misses</th><th>Exec</th><th>Actions</th></tr></thead>
@@ -34,6 +34,7 @@ async function loadRoutes(){
 function esc(value){return String(value).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
 document.addEventListener('click',async event=>{
   const b=event.target.closest('button'); if(!b)return;
+  if(b.id==='reload'){const icon=b.querySelector('svg'); icon.classList.remove('spinning'); void icon.offsetWidth; icon.classList.add('spinning'); icon.addEventListener('animationend',()=>icon.classList.remove('spinning'),{once:true}); await loadRoutes();}
   if(b.dataset.open) window.open(b.dataset.open,'_blank','noopener,noreferrer');
   if(b.dataset.copy) await navigator.clipboard.writeText(b.dataset.copy);
   if(b.dataset.delete){await fetch('/router/routes/'+b.dataset.delete,{method:'DELETE'}); await loadRoutes();}

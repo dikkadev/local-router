@@ -12,6 +12,8 @@ import (
 	"net/http/httputil"
 	"net/netip"
 	"net/url"
+	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -23,13 +25,15 @@ type Server struct {
 	Store             *Store
 	HeartbeatInterval time.Duration
 	HTTPClient        *http.Client
+	KillProcessByPort func(port int) ([]int, error)
 }
 
 func NewServer() *Server {
 	return &Server{
 		Store:             NewStore(),
-		HeartbeatInterval: 30 * time.Second,
+		HeartbeatInterval: 10 * time.Second,
 		HTTPClient:        &http.Client{Timeout: 3 * time.Second},
+		KillProcessByPort: killProcessByPort,
 	}
 }
 
@@ -90,7 +94,7 @@ func (s *Server) serveAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name, ok := strings.CutPrefix(r.URL.Path, "/router/routes/")
-	if !ok || name == "" || strings.Contains(name, "/") {
+	if !ok || name == "" || (strings.Contains(name, "/") && !(r.Method == http.MethodPost && strings.HasSuffix(name, "/kill"))) {
 		http.NotFound(w, r)
 		return
 	}
@@ -136,6 +140,29 @@ func (s *Server) serveAPI(w http.ResponseWriter, r *http.Request) {
 			log.Info("route unpinned", "name", view.Name, "url", view.URL)
 		}
 		writeJSON(w, http.StatusOK, view)
+	case http.MethodPost:
+		if !strings.HasSuffix(name, "/kill") {
+			w.Header().Set("Allow", "GET, PUT, DELETE, PATCH")
+			writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+			return
+		}
+		routeName := strings.TrimSuffix(name, "/kill")
+		route, err := s.Store.Get(routeName)
+		if err != nil {
+			writeStoreError(w, err)
+			return
+		}
+		kill := s.KillProcessByPort
+		if kill == nil {
+			kill = killProcessByPort
+		}
+		pids, err := kill(route.Port)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		log.Info("killed process for route", "name", route.Name, "port", route.Port, "pids", pids)
+		writeJSON(w, http.StatusOK, map[string]any{"pids": pids})
 	default:
 		w.Header().Set("Allow", "GET, PUT, DELETE, PATCH")
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
@@ -216,6 +243,55 @@ func (s *Server) checkRoute(ctx context.Context, route Route) bool {
 		return false
 	}
 	return false
+}
+
+func killProcessByPort(port int) ([]int, error) {
+	pids, err := listeningPIDs(port)
+	if err != nil {
+		return nil, err
+	}
+	if len(pids) == 0 {
+		return nil, fmt.Errorf("no listening process found on port %d", port)
+	}
+	for _, pid := range pids {
+		proc, err := os.FindProcess(pid)
+		if err != nil {
+			return pids, err
+		}
+		if err := proc.Kill(); err != nil {
+			return pids, err
+		}
+	}
+	return pids, nil
+}
+
+func listeningPIDs(port int) ([]int, error) {
+	commands := [][]string{
+		{"lsof", "-tiTCP:" + strconv.Itoa(port), "-sTCP:LISTEN"},
+		{"fuser", strconv.Itoa(port) + "/tcp"},
+	}
+	var lastErr error
+	seen := map[int]bool{}
+	var pids []int
+	for _, args := range commands {
+		out, err := exec.Command(args[0], args[1:]...).Output()
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		for _, field := range strings.Fields(string(out)) {
+			pid, err := strconv.Atoi(field)
+			if err != nil || seen[pid] {
+				continue
+			}
+			seen[pid] = true
+			pids = append(pids, pid)
+		}
+		if len(pids) > 0 {
+			return pids, nil
+		}
+	}
+	return pids, lastErr
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {

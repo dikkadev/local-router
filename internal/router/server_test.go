@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestAPIRegisterListDeleteAndControlPage(t *testing.T) {
@@ -50,6 +51,27 @@ func TestAPIRegisterListDeleteAndControlPage(t *testing.T) {
 	rec = doRouterRequest(s, http.MethodDelete, "http://dev.localhost/router/routes/demo-app", nil)
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("delete status=%d", rec.Code)
+	}
+}
+
+func TestKillRouteProcessByPort(t *testing.T) {
+	s := NewServer()
+	_, _ = s.Store.Register("demo", RegisterRequest{Port: 5173}, false)
+	var killedPort int
+	s.KillProcessByPort = func(port int) ([]int, error) {
+		killedPort = port
+		return []int{1234}, nil
+	}
+	rec := doRouterRequest(s, http.MethodPost, "http://dev.localhost/router/routes/demo/kill", nil)
+	if rec.Code != http.StatusOK || killedPort != 5173 || !strings.Contains(rec.Body.String(), "1234") {
+		t.Fatalf("kill status=%d port=%d body=%s", rec.Code, killedPort, rec.Body.String())
+	}
+}
+
+func TestDefaultHeartbeatIntervalIsTenSeconds(t *testing.T) {
+	s := NewServer()
+	if s.HeartbeatInterval != 10*time.Second {
+		t.Fatalf("heartbeat interval = %s", s.HeartbeatInterval)
 	}
 }
 

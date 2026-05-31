@@ -73,6 +73,20 @@ func (s *Store) Delete(rawName string) error {
 	return nil
 }
 
+func (s *Store) Get(rawName string) (Route, error) {
+	name, err := NormalizeName(rawName)
+	if err != nil {
+		return Route{}, err
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	route, ok := s.routes[name]
+	if !ok {
+		return Route{}, ErrNotFound
+	}
+	return route, nil
+}
+
 func (s *Store) GetByHost(host string) (Route, bool) {
 	host = stripHostPort(host)
 	if !stringsHasLocalhostSuffix(host) {

@@ -6,7 +6,7 @@ const controlHTML = `<!doctype html>
 <meta charset="utf-8">
 <title>local-router</title>
 <style>
-body{font-family:system-ui,sans-serif;margin:2rem;line-height:1.4;color:#e8e8e8;background:#0a0a0a}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #333;padding:.45rem;text-align:left}code{background:#1a1a1a;color:#f0f0f0;padding:.1rem .25rem}button{cursor:pointer;color:#e8e8e8;background:#1a1a1a;border:1px solid #555}button:hover:not(:disabled){background:#242424}button:active:not(:disabled){background:#111}button:disabled{cursor:wait;opacity:.65}button:focus-visible{outline:2px solid #8ab4f8;outline-offset:2px}a{color:#8ab4f8}h1{display:flex;align-items:center;gap:1rem}.icon-button{display:inline-grid;place-items:center;width:1.75rem;height:1.75rem;padding:0;font-size:1rem;line-height:1}.icon-button svg{display:block;width:1em;height:1em}.spinning{animation:spin .35s linear}@keyframes spin{to{transform:rotate(360deg)}}.muted{color:#aaa}.notice{min-height:1.4em}.notice.error{color:#ff8a8a}.notice.success{color:#9be28f}
+body{font-family:system-ui,sans-serif;margin:2rem;line-height:1.4;color:#e8e8e8;background:#0a0a0a}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #333;padding:.45rem;text-align:left}code{background:#1a1a1a;color:#f0f0f0;padding:.1rem .25rem}button{cursor:pointer;color:#e8e8e8;background:#1a1a1a;border:1px solid #555}button:hover:not(:disabled){background:#242424}button:active:not(:disabled){background:#111}button:disabled{cursor:wait;opacity:.65}button:focus-visible{outline:2px solid #8ab4f8;outline-offset:2px}a{color:#8ab4f8}h1{display:flex;align-items:center;gap:1rem}.icon-button{display:inline-grid;place-items:center;width:1.75rem;height:1.75rem;padding:0;font-size:1rem;line-height:1}.icon-button svg{display:block;width:1em;height:1em}.spinning{animation:spin .35s linear}@keyframes spin{to{transform:rotate(360deg)}}.muted{color:#aaa}.notice{min-height:1.4em}.notice.error{color:#ff8a8a}.notice.success{color:#9be28f}.age{font-weight:600}.datetime{display:block;color:#aaa;font-size:.85em;line-height:1.2}
 </style>
 </head>
 <body>
@@ -14,8 +14,8 @@ body{font-family:system-ui,sans-serif;margin:2rem;line-height:1.4;color:#e8e8e8;
 <p class="muted">Stable local routes. API root: <code>/router/routes</code>.</p>
 <p id="status" class="notice" role="status" aria-live="polite"></p>
 <table>
-<thead><tr><th>Name</th><th>URL</th><th>Title</th><th>Status</th><th>Target</th><th>Heartbeat</th><th>Misses</th><th>Exec</th><th>Actions</th></tr></thead>
-<tbody id="routes"><tr><td colspan="9">Loading…</td></tr></tbody>
+<thead><tr><th>Name</th><th>URL</th><th>Title</th><th>Status</th><th>Registered<br><span class="muted">Date<br>Time</span></th><th>Target</th><th>Heartbeat</th><th>Misses</th><th>Exec</th><th>Actions</th></tr></thead>
+<tbody id="routes"><tr><td colspan="10">Loading…</td></tr></tbody>
 </table>
 <script>
 async function loadRoutes(){
@@ -23,16 +23,33 @@ async function loadRoutes(){
   try{
     const res=await fetch('/router/routes',{cache:'no-store'});
     const routes=await res.json();
-    if(!routes.length){body.innerHTML='<tr><td colspan="9" class="muted">No routes registered.</td></tr>';return;}
+    if(!routes.length){body.innerHTML='<tr><td colspan="10" class="muted">No routes registered.</td></tr>';return;}
     body.replaceChildren(...routes.map(route=>{
       const tr=document.createElement('tr');
       const target=route.targetHost+':'+route.port;
-      tr.innerHTML='<td>'+esc(route.name)+'</td><td><a href="'+route.url+'" target="_blank" rel="noopener noreferrer">'+route.url+'</a></td><td>'+esc(route.title||'')+'</td><td>'+esc(route.status)+'</td><td>'+esc(target)+'</td><td>'+esc(route.heartbeatPath)+'</td><td>'+route.misses+'</td><td>'+esc(route.exec||'')+'</td><td><button data-open="'+route.url+'">Open</button> <button data-copy="'+route.url+'">Copy</button> <button data-delete="'+route.name+'">Unregister</button> <button data-pin="'+route.name+'" data-pinned="'+route.pinned+'">'+(route.pinned?'Unpin':'Pin')+'</button> <button data-kill="'+route.name+'">Kill</button></td>';
+      const registered=formatRegistered(route.createdAt);
+      tr.innerHTML='<td>'+esc(route.name)+'</td><td><a href="'+route.url+'" target="_blank" rel="noopener noreferrer">'+route.url+'</a></td><td>'+esc(route.title||'')+'</td><td>'+esc(route.status)+'</td><td><span class="age">'+esc(registered.age)+'</span><span class="datetime">'+esc(registered.date)+'<br>'+esc(registered.time)+'</span></td><td>'+esc(target)+'</td><td>'+esc(route.heartbeatPath)+'</td><td>'+route.misses+'</td><td>'+esc(route.exec||'')+'</td><td><button data-open="'+route.url+'">Open</button> <button data-copy="'+route.url+'">Copy</button> <button data-delete="'+route.name+'">Unregister</button> <button data-pin="'+route.name+'" data-pinned="'+route.pinned+'">'+(route.pinned?'Unpin':'Pin')+'</button> <button data-kill="'+route.name+'">Kill</button></td>';
       return tr;
     }));
   }catch(err){body.innerHTML='<tr><td colspan="9">Failed to load routes: '+esc(err.message)+'</td></tr>';}
 }
 function esc(value){return String(value).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+function formatRegistered(value){
+  const date=new Date(value);
+  if(Number.isNaN(date.getTime())) return {age:'unknown',date:'',time:''};
+  const seconds=Math.max(0,Math.floor((Date.now()-date.getTime())/1000));
+  const mins=Math.floor(seconds/60), hours=Math.floor(mins/60), days=Math.floor(hours/24);
+  let age;
+  if(seconds<60) age=seconds+'s';
+  else if(mins<60) age=mins+'m'+String(seconds%60).padStart(2,'0')+'s';
+  else if(hours<24) age=hours+'h'+String(mins%60).padStart(2,'0')+'min';
+  else age=days+'d'+(hours%24?String(hours%24)+'h':'');
+  return {
+    age,
+    date:date.toLocaleDateString(undefined,{month:'short',day:'numeric'}),
+    time:date.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})
+  };
+}
 function setStatus(message,type){const el=document.getElementById('status'); el.textContent=message||''; el.className='notice '+(type||'');}
 async function readResponseError(res){try{const data=await res.json(); return data.error||JSON.stringify(data);}catch{return await res.text()||res.statusText;}}
 async function checkedFetch(url,options){const res=await fetch(url,options); if(!res.ok) throw new Error(await readResponseError(res)); return res;}

@@ -91,4 +91,4 @@ This is local-only tooling, but service changes can affect port 80 and current b
 
 ## Current limitations
 
-Routes are in-memory and do not survive router service restarts. The router does not start, stop, or supervise target app servers.
+Routes are in-memory and do not automatically survive router service restarts. Use `local-router export routes.jsonl` and `local-router import routes.jsonl [--mode merge|set]` for manual JSONL snapshots. The router does not start, stop, or supervise target app servers.

@@ -150,6 +150,8 @@ local-router register demo --port 5173 --title "Demo app"
 local-router register demo --port 5173 --title "Demo app" --pinned
 local-router register demo --port 3000 --force
 local-router routes
+local-router export routes.jsonl
+local-router import routes.jsonl --mode set
 local-router pin demo
 local-router unpin demo
 local-router unregister demo
@@ -165,4 +167,4 @@ Important: `local-router` does **not** start your target web server. Start your 
 
 ## Status
 
-Initial v1 implementation exists: in-memory route registry, REST API, control page, reverse proxy, heartbeat cleanup, CLI commands, and a Linux/WSL systemd unit template.
+Initial v1 implementation exists: in-memory route registry, JSONL route snapshot import/export, REST API, control page, reverse proxy, heartbeat cleanup, CLI commands, and a Linux/WSL systemd unit template.

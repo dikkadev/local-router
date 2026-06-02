@@ -49,12 +49,13 @@ type RouteView struct {
 }
 
 type RegisterRequest struct {
-	Port          int    `json:"port"`
-	Title         string `json:"title,omitempty"`
-	TargetHost    string `json:"targetHost,omitempty"`
-	Pinned        bool   `json:"pinned,omitempty"`
-	Exec          string `json:"exec,omitempty"`
-	HeartbeatPath string `json:"heartbeatPath,omitempty"`
+	Port          int       `json:"port"`
+	Title         string    `json:"title,omitempty"`
+	TargetHost    string    `json:"targetHost,omitempty"`
+	Pinned        bool      `json:"pinned,omitempty"`
+	Exec          string    `json:"exec,omitempty"`
+	HeartbeatPath string    `json:"heartbeatPath,omitempty"`
+	CreatedAt     time.Time `json:"createdAt,omitempty"`
 }
 
 func NormalizeName(input string) (string, error) {

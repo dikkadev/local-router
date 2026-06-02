@@ -38,6 +38,10 @@ func (s *Store) Register(rawName string, req RegisterRequest, force bool) (Route
 	if heartbeatPath[0] != '/' {
 		heartbeatPath = "/" + heartbeatPath
 	}
+	createdAt := req.CreatedAt
+	if createdAt.IsZero() {
+		createdAt = time.Now()
+	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -53,7 +57,7 @@ func (s *Store) Register(rawName string, req RegisterRequest, force bool) (Route
 		Pinned:        req.Pinned,
 		Exec:          req.Exec,
 		HeartbeatPath: heartbeatPath,
-		CreatedAt:     time.Now(),
+		CreatedAt:     createdAt,
 	}
 	s.routes[name] = route
 	return viewFor(route), nil
@@ -71,6 +75,12 @@ func (s *Store) Delete(rawName string) error {
 	}
 	delete(s.routes, name)
 	return nil
+}
+
+func (s *Store) Clear() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.routes = make(map[string]Route)
 }
 
 func (s *Store) Get(rawName string) (Route, error) {

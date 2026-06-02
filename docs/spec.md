@@ -37,7 +37,7 @@ without per-run Windows hosts-file edits and without hand-editing/reloading Cadd
 - Starting, supervising, or owning the target web servers.
 - Internet/LAN exposure; this is loopback-only.
 - HTTPS as a v1 requirement, though it should remain possible later.
-- Persistent route storage across router restarts.
+- Automatic persistent route storage across router restarts. Manual JSONL snapshot import/export is supported.
 
 ## Key concepts
 
@@ -304,7 +304,7 @@ Proxy behavior:
 
 ## Lifecycle and cleanup
 
-All route state is in memory. Nothing persists across router restart, including pinned routes.
+All live route state is in memory. Nothing automatically persists across router restart, including pinned routes. Users can manually snapshot route definitions with `local-router export <path|->` and restore them with `local-router import <path|-> [--mode merge|set] [--force]`.
 
 Use layered cleanup:
 
@@ -421,7 +421,8 @@ Router lookup should be protected by a mutex or other concurrency-safe structure
 - Project/tool name: `local-router`.
 - Router service listening on loopback port 80.
 - CLI that talks to the router service API.
-- In-memory route registry only; no route persistence across restart.
+- In-memory route registry only; no automatic route persistence across restart.
+- JSONL route snapshot import/export for manual backup/restore.
 - Required route registration by name and port.
 - Route name normalization to lowercase dash-delimited labels.
 - Optional title, exec metadata, heartbeat path, and pinned route metadata.

@@ -35,6 +35,12 @@ CLIENT COMMANDS
   routes
       List registered routes.
 
+  export <path|->
+      Write current routes as JSONL, one route per line.
+
+  import <path|-> [--mode merge|set] [--force]
+      Read routes from JSONL. Default mode is merge; set replaces current routes.
+
   unregister <name>
       Remove a route.
 
@@ -109,6 +115,27 @@ EXAMPLES
   local-router serve
   local-router serve --json
   local-router serve --addr 127.0.0.1:8080   # testing only; URLs need :8080
+`)
+	case "export":
+		fmt.Fprint(w, `USAGE
+  local-router export <path|->
+
+Write current routes as JSONL, one route per line. Excludes transient health fields
+such as misses and lastCheckAt.
+
+EXAMPLE
+  local-router export routes.jsonl
+`)
+	case "import":
+		fmt.Fprint(w, `USAGE
+  local-router import <path|-> [--mode merge|set] [--force]
+
+Read routes from JSONL. Default mode is merge. Set mode removes current routes
+before importing. Merge mode reports conflicts unless --force is used.
+
+EXAMPLE
+  local-router import routes.jsonl
+  local-router import routes.jsonl --mode set
 `)
 	case "status", "routes", "unregister", "pin", "unpin":
 		fmt.Fprintf(w, "USAGE\n  local-router %s", command)

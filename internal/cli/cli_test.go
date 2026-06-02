@@ -5,6 +5,8 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -68,6 +70,47 @@ func TestRoutesPinUnpinAndUnregister(t *testing.T) {
 	stdout.Reset()
 	if code := Run([]string{"unregister", "demo"}, Config{BaseURL: server.URL, Stdout: &stdout, Stderr: &stderr}); code != 0 || !strings.Contains(stdout.String(), "unregistered demo") {
 		t.Fatalf("unregister code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
+	}
+}
+
+func TestExportAndImportJSONL(t *testing.T) {
+	s := router.NewServer()
+	server := httptest.NewServer(s)
+	defer server.Close()
+	var stdout, stderr bytes.Buffer
+	if code := Run([]string{"register", "old", "--port", "1111"}, Config{BaseURL: server.URL, Stdout: &stdout, Stderr: &stderr}); code != 0 {
+		t.Fatalf("register old failed: %s", stderr.String())
+	}
+	stdout.Reset()
+	path := filepath.Join(t.TempDir(), "routes.jsonl")
+	content := `{"name":"demo","port":5173,"title":"Demo app","targetHost":"127.0.0.1","pinned":true,"exec":"vp dev","heartbeatPath":"/health","createdAt":"2026-06-01T12:34:56Z"}` + "\n"
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code := Run([]string{"import", path, "--mode", "set"}, Config{BaseURL: server.URL, Stdout: &stdout, Stderr: &stderr}); code != 0 {
+		t.Fatalf("import code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
+	}
+	if _, err := s.Store.Get("old"); err == nil {
+		t.Fatal("set import should remove existing routes")
+	}
+	route, err := s.Store.Get("demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if route.Port != 5173 || !route.Pinned || route.Misses != 0 || route.HeartbeatPath != "/health" || route.CreatedAt.Format("2006-01-02T15:04:05Z") != "2026-06-01T12:34:56Z" {
+		t.Fatalf("unexpected imported route: %+v", route)
+	}
+	stdout.Reset()
+	exportPath := filepath.Join(t.TempDir(), "export.jsonl")
+	if code := Run([]string{"export", exportPath}, Config{BaseURL: server.URL, Stdout: &stdout, Stderr: &stderr}); code != 0 {
+		t.Fatalf("export code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
+	}
+	exported, err := os.ReadFile(exportPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(exported), `"createdAt":"2026-06-01T12:34:56Z"`) || strings.Contains(string(exported), "misses") || strings.Contains(string(exported), "lastCheckAt") {
+		t.Fatalf("bad export: %s", exported)
 	}
 }
 

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -57,6 +58,10 @@ func Run(args []string, cfg Config) int {
 		err = unregister(client, args[1:], cfg.Stdout)
 	case "routes":
 		err = routes(client, cfg.Stdout)
+	case "export":
+		err = exportRoutes(client, args[1:], cfg.Stdout)
+	case "import":
+		err = importRoutes(client, args[1:], cfg.Stdout)
 	case "pin":
 		err = setPinned(client, args[1:], true, cfg.Stdout)
 	case "unpin":
@@ -76,6 +81,17 @@ func Run(args []string, cfg Config) int {
 type Client struct {
 	BaseURL string
 	HTTP    *http.Client
+}
+
+type snapshotRoute struct {
+	Name          string    `json:"name"`
+	Port          int       `json:"port"`
+	Title         string    `json:"title,omitempty"`
+	TargetHost    string    `json:"targetHost,omitempty"`
+	Pinned        bool      `json:"pinned,omitempty"`
+	Exec          string    `json:"exec,omitempty"`
+	HeartbeatPath string    `json:"heartbeatPath,omitempty"`
+	CreatedAt     time.Time `json:"createdAt,omitempty"`
 }
 
 func (c *Client) List() ([]router.RouteView, error) {
@@ -236,6 +252,138 @@ func routes(client *Client, out io.Writer) error {
 		fmt.Fprintf(out, "%s\t%s\t%s\t%s:%d\n", route.Name, route.URL, route.Status, route.TargetHost, route.Port)
 	}
 	return nil
+}
+
+func exportRoutes(client *Client, args []string, out io.Writer) error {
+	if len(args) != 1 {
+		return errors.New("export requires a path or -")
+	}
+	routes, err := client.List()
+	if err != nil {
+		return err
+	}
+	var w io.Writer
+	var file *os.File
+	if args[0] == "-" {
+		w = out
+	} else {
+		file, err = os.Create(args[0])
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		w = file
+	}
+	enc := json.NewEncoder(w)
+	for _, route := range routes {
+		if err := enc.Encode(snapshotFromRoute(route.Route)); err != nil {
+			return err
+		}
+	}
+	if file != nil {
+		fmt.Fprintf(out, "exported %d routes to %s\n", len(routes), args[0])
+	}
+	return nil
+}
+
+func importRoutes(client *Client, args []string, out io.Writer) error {
+	path := ""
+	mode := "merge"
+	force := false
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--mode":
+			i++
+			if i >= len(args) {
+				return errors.New("--mode requires merge or set")
+			}
+			mode = args[i]
+		case "--force":
+			force = true
+		default:
+			if strings.HasPrefix(args[i], "--") {
+				return fmt.Errorf("unknown option %s", args[i])
+			}
+			if path != "" {
+				return errors.New("import accepts only one path")
+			}
+			path = args[i]
+		}
+	}
+	if path == "" {
+		return errors.New("import requires a path or -")
+	}
+	if mode != "merge" && mode != "set" {
+		return errors.New("--mode must be merge or set")
+	}
+	snapshot, err := readSnapshot(path)
+	if err != nil {
+		return err
+	}
+	if mode == "set" {
+		existing, err := client.List()
+		if err != nil {
+			return err
+		}
+		for _, route := range existing {
+			if err := client.Delete(route.Name); err != nil {
+				return err
+			}
+		}
+	}
+	for _, route := range snapshot {
+		_, err := client.Register(route.Name, router.RegisterRequest{Port: route.Port, Title: route.Title, TargetHost: route.TargetHost, Pinned: route.Pinned, Exec: route.Exec, HeartbeatPath: route.HeartbeatPath, CreatedAt: route.CreatedAt}, force || mode == "set")
+		if err != nil {
+			return fmt.Errorf("import %s: %w", route.Name, err)
+		}
+	}
+	fmt.Fprintf(out, "imported %d routes (%s)\n", len(snapshot), mode)
+	return nil
+}
+
+func readSnapshot(path string) ([]snapshotRoute, error) {
+	var r io.Reader
+	var file *os.File
+	var err error
+	if path == "-" {
+		r = os.Stdin
+	} else {
+		file, err = os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		defer file.Close()
+		r = file
+	}
+	scanner := bufio.NewScanner(r)
+	var routes []snapshotRoute
+	lineNo := 0
+	for scanner.Scan() {
+		lineNo++
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+		var route snapshotRoute
+		if err := json.Unmarshal([]byte(line), &route); err != nil {
+			return nil, fmt.Errorf("line %d: %w", lineNo, err)
+		}
+		if route.Name == "" {
+			return nil, fmt.Errorf("line %d: missing name", lineNo)
+		}
+		if route.Port == 0 {
+			return nil, fmt.Errorf("line %d: missing port", lineNo)
+		}
+		routes = append(routes, route)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return routes, nil
+}
+
+func snapshotFromRoute(route router.Route) snapshotRoute {
+	return snapshotRoute{Name: route.Name, Port: route.Port, Title: route.Title, TargetHost: route.TargetHost, Pinned: route.Pinned, Exec: route.Exec, HeartbeatPath: route.HeartbeatPath, CreatedAt: route.CreatedAt}
 }
 
 func setPinned(client *Client, args []string, pinned bool, out io.Writer) error {

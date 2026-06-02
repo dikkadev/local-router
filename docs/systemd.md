@@ -76,7 +76,7 @@ local-router status
 
 If the service is not running yet, skip the `stop` command and run the install/copy/start steps.
 
-Route state is in memory, so stopping or restarting the service clears registered routes, including pinned routes. Re-register any routes you still need after the update.
+Route state is in memory, so stopping or restarting the service clears registered routes, including pinned routes. If you want a manual snapshot, run `local-router export routes.jsonl` before stopping and `local-router import routes.jsonl --mode set` after starting. Otherwise, re-register any routes you still need after the update.
 
 ## Stop or remove
 

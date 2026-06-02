@@ -14,8 +14,8 @@ body{font-family:system-ui,sans-serif;margin:2rem;line-height:1.4;color:#e8e8e8;
 <p class="muted">Stable local routes. API root: <code>/router/routes</code>.</p>
 <p id="status" class="notice" role="status" aria-live="polite"></p>
 <table>
-<thead><tr><th>Name</th><th>URL</th><th>Title</th><th>Status</th><th>Registered<br><span class="muted">Date<br>Time</span></th><th>Target</th><th>Heartbeat</th><th>Misses</th><th>Exec</th><th>Actions</th></tr></thead>
-<tbody id="routes"><tr><td colspan="10">Loading…</td></tr></tbody>
+<thead><tr><th>Name</th><th>URL</th><th>Title</th><th>Status</th><th>Age</th><th>Registered</th><th>Target</th><th>Heartbeat</th><th>Misses</th><th>Exec</th><th>Actions</th></tr></thead>
+<tbody id="routes"><tr><td colspan="11">Loading…</td></tr></tbody>
 </table>
 <script>
 async function loadRoutes(){
@@ -23,15 +23,15 @@ async function loadRoutes(){
   try{
     const res=await fetch('/router/routes',{cache:'no-store'});
     const routes=await res.json();
-    if(!routes.length){body.innerHTML='<tr><td colspan="10" class="muted">No routes registered.</td></tr>';return;}
+    if(!routes.length){body.innerHTML='<tr><td colspan="11" class="muted">No routes registered.</td></tr>';return;}
     body.replaceChildren(...routes.map(route=>{
       const tr=document.createElement('tr');
       const target=route.targetHost+':'+route.port;
       const registered=formatRegistered(route.createdAt);
-      tr.innerHTML='<td>'+esc(route.name)+'</td><td><a href="'+route.url+'" target="_blank" rel="noopener noreferrer">'+route.url+'</a></td><td>'+esc(route.title||'')+'</td><td>'+esc(route.status)+'</td><td><span class="age">'+esc(registered.age)+'</span><span class="datetime">'+esc(registered.date)+'<br>'+esc(registered.time)+'</span></td><td>'+esc(target)+'</td><td>'+esc(route.heartbeatPath)+'</td><td>'+route.misses+'</td><td>'+esc(route.exec||'')+'</td><td><button data-open="'+route.url+'">Open</button> <button data-copy="'+route.url+'">Copy</button> <button data-delete="'+route.name+'">Unregister</button> <button data-pin="'+route.name+'" data-pinned="'+route.pinned+'">'+(route.pinned?'Unpin':'Pin')+'</button> <button data-kill="'+route.name+'">Kill</button></td>';
+      tr.innerHTML='<td>'+esc(route.name)+'</td><td><a href="'+route.url+'" target="_blank" rel="noopener noreferrer">'+route.url+'</a></td><td>'+esc(route.title||'')+'</td><td>'+esc(route.status)+'</td><td><span class="age">'+esc(registered.age)+'</span></td><td><span class="datetime">'+esc(registered.date)+'<br>'+esc(registered.time)+'</span></td><td>'+esc(target)+'</td><td>'+esc(route.heartbeatPath)+'</td><td>'+route.misses+'</td><td>'+esc(route.exec||'')+'</td><td><button data-open="'+route.url+'">Open</button> <button data-copy="'+route.url+'">Copy</button> <button data-delete="'+route.name+'">Unregister</button> <button data-pin="'+route.name+'" data-pinned="'+route.pinned+'">'+(route.pinned?'Unpin':'Pin')+'</button> <button data-kill="'+route.name+'">Kill</button></td>';
       return tr;
     }));
-  }catch(err){body.innerHTML='<tr><td colspan="9">Failed to load routes: '+esc(err.message)+'</td></tr>';}
+  }catch(err){body.innerHTML='<tr><td colspan="11">Failed to load routes: '+esc(err.message)+'</td></tr>';}
 }
 function esc(value){return String(value).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
 function formatRegistered(value){

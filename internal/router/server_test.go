@@ -45,8 +45,14 @@ func TestAPIRegisterListDeleteAndControlPage(t *testing.T) {
 		t.Fatalf("force status=%d", rec.Code)
 	}
 	rec = doRouterRequest(s, http.MethodGet, "http://dev.localhost/", nil)
-	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "/router/routes") {
+	controlBody := rec.Body.String()
+	if rec.Code != http.StatusOK || !strings.Contains(controlBody, "/router/routes") {
 		t.Fatalf("control page status=%d", rec.Code)
+	}
+	for _, want := range []string{"id=\"add-route\"", "id=\"register-dialog\"", "tr.pinned"} {
+		if !strings.Contains(controlBody, want) {
+			t.Fatalf("control page missing %q", want)
+		}
 	}
 	rec = doRouterRequest(s, http.MethodDelete, "http://dev.localhost/router/routes/demo-app", nil)
 	if rec.Code != http.StatusNoContent {

@@ -116,7 +116,15 @@ func (s *Store) List() []RouteView {
 	for _, route := range s.routes {
 		views = append(views, viewFor(route))
 	}
-	sort.Slice(views, func(i, j int) bool { return views[i].Name < views[j].Name })
+	sort.Slice(views, func(i, j int) bool {
+		if views[i].Pinned != views[j].Pinned {
+			return views[i].Pinned
+		}
+		if !views[i].CreatedAt.Equal(views[j].CreatedAt) {
+			return views[i].CreatedAt.Before(views[j].CreatedAt)
+		}
+		return views[i].Name < views[j].Name
+	})
 	return views
 }
 

@@ -49,7 +49,7 @@ func TestAPIRegisterListDeleteAndControlPage(t *testing.T) {
 	if rec.Code != http.StatusOK || !strings.Contains(controlBody, "/router/routes") {
 		t.Fatalf("control page status=%d", rec.Code)
 	}
-	for _, want := range []string{"id=\"add-route\"", "id=\"register-dialog\"", "tr.pinned"} {
+	for _, want := range []string{"id=\"add-route\"", "id=\"register-dialog\"", "tr.pinned", "tr.missed", "miss-mark", "status-badge.missed"} {
 		if !strings.Contains(controlBody, want) {
 			t.Fatalf("control page missing %q", want)
 		}

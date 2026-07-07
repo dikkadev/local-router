@@ -176,10 +176,14 @@ func (s *Server) proxyRoute(w http.ResponseWriter, r *http.Request, route Route)
 	originalDirector := proxy.Director
 	proxy.Director = func(req *http.Request) {
 		origHost := r.Host
+		forwardedProto := r.Header.Get("X-Forwarded-Proto")
+		if forwardedProto == "" {
+			forwardedProto = "http"
+		}
 		originalDirector(req)
 		req.Host = route.TargetHost
 		req.Header.Set("X-Forwarded-Host", stripHostPort(origHost))
-		req.Header.Set("X-Forwarded-Proto", "http")
+		req.Header.Set("X-Forwarded-Proto", forwardedProto)
 	}
 	proxy.Transport = &http.Transport{
 		Proxy:               http.ProxyFromEnvironment,

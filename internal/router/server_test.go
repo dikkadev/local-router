@@ -131,6 +131,7 @@ func TestExternalHostDashboardRouteAndCGNATClient(t *testing.T) {
 }
 
 func TestProxyPreservesRequestAndForwardedHeaders(t *testing.T) {
+	forwardedProtos := []string{"http", "https"}
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/hello" || r.URL.RawQuery != "x=1" {
 			t.Fatalf("path/query = %s?%s", r.URL.Path, r.URL.RawQuery)
@@ -142,7 +143,12 @@ func TestProxyPreservesRequestAndForwardedHeaders(t *testing.T) {
 		if string(body) != "payload" || r.Header.Get("X-Test") != "yes" {
 			t.Fatalf("body/header mismatch")
 		}
-		if r.Header.Get("X-Forwarded-Host") != "demo.localhost" || r.Header.Get("X-Forwarded-Proto") != "http" || r.Header.Get("X-Forwarded-For") == "" {
+		if len(forwardedProtos) == 0 {
+			t.Fatalf("unexpected extra request")
+		}
+		wantProto := forwardedProtos[0]
+		forwardedProtos = forwardedProtos[1:]
+		if r.Header.Get("X-Forwarded-Host") != "demo.localhost" || r.Header.Get("X-Forwarded-Proto") != wantProto || r.Header.Get("X-Forwarded-For") == "" {
 			t.Fatalf("forwarded headers missing: %+v", r.Header)
 		}
 		w.Header().Set("X-Upstream", "ok")
@@ -163,6 +169,16 @@ func TestProxyPreservesRequestAndForwardedHeaders(t *testing.T) {
 	s.ServeHTTP(rec, req)
 	if rec.Code != http.StatusAccepted || rec.Header().Get("X-Upstream") != "ok" || strings.TrimSpace(rec.Body.String()) != host {
 		t.Fatalf("proxy response code=%d headers=%v body=%q", rec.Code, rec.Header(), rec.Body.String())
+	}
+
+	req = httptest.NewRequest(http.MethodPost, "http://demo.localhost/hello?x=1", bytes.NewBufferString("payload"))
+	req.RemoteAddr = "127.0.0.1:7777"
+	req.Header.Set("X-Test", "yes")
+	req.Header.Set("X-Forwarded-Proto", "https")
+	rec = httptest.NewRecorder()
+	s.ServeHTTP(rec, req)
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("https forwarded proto request failed: %d", rec.Code)
 	}
 }
 

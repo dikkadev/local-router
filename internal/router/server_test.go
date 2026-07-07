@@ -95,6 +95,41 @@ func TestMissingAndUnavailablePages(t *testing.T) {
 	}
 }
 
+func TestExternalHostDashboardRouteAndCGNATClient(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Forwarded-Host") != "demo.ppc.dikka.dev" {
+			t.Fatalf("forwarded host = %q", r.Header.Get("X-Forwarded-Host"))
+		}
+		_, _ = w.Write([]byte("external ok"))
+	}))
+	defer upstream.Close()
+	host, port := hostPort(t, upstream.URL)
+	s := NewServer()
+	s.ExternalHost = "ppc.dikka.dev"
+	_, err := s.Store.Register("demo", RegisterRequest{Port: port, TargetHost: host}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec := doRouterRequest(s, http.MethodGet, "http://ppc.dikka.dev/", nil)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "urlForRoute") {
+		t.Fatalf("external dashboard status=%d body=%s", rec.Code, rec.Body.String())
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "http://demo.ppc.dikka.dev/", nil)
+	req.RemoteAddr = "100.71.199.26:1234"
+	rec = httptest.NewRecorder()
+	s.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK || strings.TrimSpace(rec.Body.String()) != "external ok" {
+		t.Fatalf("external route status=%d body=%q", rec.Code, rec.Body.String())
+	}
+
+	rec = doRouterRequest(s, http.MethodGet, "http://missing.ppc.dikka.dev/", nil)
+	if rec.Code != http.StatusNotFound || !strings.Contains(rec.Body.String(), "ppc.dikka.dev") {
+		t.Fatalf("external missing status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestProxyPreservesRequestAndForwardedHeaders(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/hello" || r.URL.RawQuery != "x=1" {

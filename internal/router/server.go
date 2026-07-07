@@ -26,6 +26,7 @@ type Server struct {
 	HeartbeatInterval time.Duration
 	HTTPClient        *http.Client
 	KillProcessByPort func(port int) ([]int, error)
+	ExternalHost      string
 }
 
 func NewServer() *Server {
@@ -43,7 +44,7 @@ func (s *Server) ListenAndServe(ctx context.Context, addr string) error {
 	if err != nil {
 		return fmt.Errorf("cannot start local-router on %s: %w", addr, err)
 	}
-	log.Info("local-router listening", "addr", addr, "url", "http://"+addr)
+	log.Info("local-router listening", "addr", addr, "url", "http://"+addr, "externalHost", s.externalHost())
 	s.StartHeartbeat(ctx)
 	httpServer := &http.Server{Handler: s, ReadHeaderTimeout: 10 * time.Second}
 	go func() {
@@ -64,15 +65,15 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	host := stripHostPort(r.Host)
-	if host == PrimaryControlHost || host == SecondaryControlHost {
+	if s.isControlHost(host) {
 		s.serveControl(w, r)
 		return
 	}
-	if route, ok := s.Store.GetByHost(host); ok {
+	if route, ok := s.routeByHost(host); ok {
 		s.proxyRoute(w, r, route)
 		return
 	}
-	missingRoutePage(w, host)
+	missingRoutePage(w, host, s.dashboardURLForHost(host))
 }
 
 func (s *Server) serveControl(w http.ResponseWriter, r *http.Request) {
@@ -189,7 +190,7 @@ func (s *Server) proxyRoute(w http.ResponseWriter, r *http.Request, route Route)
 		TLSHandshakeTimeout: 10 * time.Second,
 	}
 	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
-		unavailableRoutePage(w, route, err)
+		unavailableRoutePage(w, route, err, s.dashboardURLForHost(stripHostPort(r.Host)))
 	}
 	proxy.FlushInterval = -1
 	proxy.ServeHTTP(w, r)
@@ -243,6 +244,63 @@ func (s *Server) checkRoute(ctx context.Context, route Route) bool {
 		return false
 	}
 	return false
+}
+
+func (s *Server) isControlHost(host string) bool {
+	host = stripHostPort(host)
+	return host == PrimaryControlHost || host == SecondaryControlHost || (s.externalHost() != "" && host == s.externalHost())
+}
+
+func (s *Server) routeByHost(host string) (Route, bool) {
+	name, ok := s.routeNameForHost(host)
+	if !ok {
+		return Route{}, false
+	}
+	route, err := s.Store.Get(name)
+	return route, err == nil
+}
+
+func (s *Server) routeNameForHost(host string) (string, bool) {
+	host = stripHostPort(host)
+	if stringsHasLocalhostSuffix(host) {
+		name := host[:len(host)-len(LocalhostSuffix)]
+		if _, err := NormalizeName(name); err == nil {
+			return name, true
+		}
+		return "", false
+	}
+	externalHost := s.externalHost()
+	if externalHost == "" || !strings.HasSuffix(host, "."+externalHost) {
+		return "", false
+	}
+	name := strings.TrimSuffix(host, "."+externalHost)
+	if _, err := NormalizeName(name); err != nil {
+		return "", false
+	}
+	return name, true
+}
+
+func (s *Server) dashboardURLForHost(host string) string {
+	host = stripHostPort(host)
+	if externalHost := s.externalHost(); externalHost != "" && (host == externalHost || strings.HasSuffix(host, "."+externalHost)) {
+		return "http://" + externalHost
+	}
+	return "http://" + PrimaryControlHost
+}
+
+func (s *Server) externalHost() string {
+	return normalizeExternalHost(s.ExternalHost)
+}
+
+func normalizeExternalHost(raw string) string {
+	host := strings.ToLower(strings.TrimSpace(raw))
+	host = strings.TrimPrefix(host, "http://")
+	host = strings.TrimPrefix(host, "https://")
+	if before, _, ok := strings.Cut(host, "/"); ok {
+		host = before
+	}
+	host = strings.TrimSuffix(host, ".")
+	return stripHostPort(host)
 }
 
 func killProcessByPort(port int) ([]int, error) {
@@ -317,16 +375,16 @@ func writeStoreError(w http.ResponseWriter, err error) {
 	}
 }
 
-func missingRoutePage(w http.ResponseWriter, host string) {
+func missingRoutePage(w http.ResponseWriter, host, dashboardURL string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusNotFound)
-	_, _ = fmt.Fprintf(w, "<h1>No route registered for %s</h1><p>Open <a href=\"http://dev.localhost\">dev.localhost</a> to inspect current registrations.</p>", html.EscapeString(host))
+	_, _ = fmt.Fprintf(w, "<h1>No route registered for %s</h1><p>Open <a href=\"%s\">%s</a> to inspect current registrations.</p>", html.EscapeString(host), html.EscapeString(dashboardURL), html.EscapeString(strings.TrimPrefix(dashboardURL, "http://")))
 }
 
-func unavailableRoutePage(w http.ResponseWriter, route Route, err error) {
+func unavailableRoutePage(w http.ResponseWriter, route Route, err error, dashboardURL string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(523)
-	_, _ = fmt.Fprintf(w, "<h1>%s is unavailable</h1><p>The route is registered, but local-router cannot reach %s:%d.</p><p>Open <a href=\"http://dev.localhost\">dev.localhost</a> to inspect registrations.</p><pre>%s</pre>", html.EscapeString(route.Host), html.EscapeString(route.TargetHost), route.Port, html.EscapeString(err.Error()))
+	_, _ = fmt.Fprintf(w, "<h1>%s is unavailable</h1><p>The route is registered, but local-router cannot reach %s:%d.</p><p>Open <a href=\"%s\">%s</a> to inspect registrations.</p><pre>%s</pre>", html.EscapeString(route.Host), html.EscapeString(route.TargetHost), route.Port, html.EscapeString(dashboardURL), html.EscapeString(strings.TrimPrefix(dashboardURL, "http://")), html.EscapeString(err.Error()))
 }
 
 func isAllowedRemoteAddr(remoteAddr string) bool {
@@ -341,12 +399,20 @@ func isAllowedRemoteAddr(remoteAddr string) bool {
 	if err != nil {
 		return false
 	}
-	if addr.IsLoopback() || addr.IsPrivate() || addr.IsLinkLocalUnicast() {
+	if isAllowedClientAddr(addr) {
 		return true
 	}
 	if addr.Is4In6() {
-		v4 := addr.Unmap()
-		return v4.IsLoopback() || v4.IsPrivate() || v4.IsLinkLocalUnicast()
+		return isAllowedClientAddr(addr.Unmap())
 	}
 	return false
+}
+
+func isAllowedClientAddr(addr netip.Addr) bool {
+	return addr.IsLoopback() || addr.IsPrivate() || addr.IsLinkLocalUnicast() || isCGNATAddr(addr)
+}
+
+func isCGNATAddr(addr netip.Addr) bool {
+	prefix := netip.MustParsePrefix("100.64.0.0/10")
+	return addr.Is4() && prefix.Contains(addr)
 }

@@ -11,9 +11,10 @@ USAGE
   local-router <command> [options]
 
 SERVICE COMMAND
-  serve [--addr 127.0.0.1:80] [--json]
+  serve [--addr 127.0.0.1:80] [--external-host <host>] [--json]
       Start the long-running local reverse proxy. This is the actual router.
       Keep it running while you use registered routes.
+      Use --external-host to also serve a tailnet/domain dashboard and subdomain routes.
       Use --json for structured JSON logs.
 
 CLIENT COMMANDS
@@ -102,18 +103,21 @@ EXAMPLE
 `)
 	case "serve":
 		fmt.Fprint(w, `USAGE
-  local-router serve [--addr 127.0.0.1:80] [--json]
+  local-router serve [--addr 127.0.0.1:80] [--external-host <host>] [--json]
 
 Start the long-running router/reverse-proxy service.
 Keep this process running while you use registered routes.
 
 OPTIONS
-  --addr <addr>  Listen address, default 127.0.0.1:80
-  --json         Emit structured JSON logs using charmbracelet/log
+  --addr <addr>            Listen address, default 127.0.0.1:80 or LOCAL_ROUTER_ADDR
+  --external-host <host>   Also serve dashboard at host and routes at <name>.<host>
+                           Can also be set with LOCAL_ROUTER_EXTERNAL_HOST
+  --json                   Emit structured JSON logs using charmbracelet/log
 
 EXAMPLES
   local-router serve
   local-router serve --json
+  local-router serve --addr 0.0.0.0:80 --external-host ppc.dikka.dev
   local-router serve --addr 127.0.0.1:8080   # testing only; URLs need :8080
 `)
 	case "export":

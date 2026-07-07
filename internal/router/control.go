@@ -55,15 +55,21 @@ async function loadRoutes(){
       const pinMark=route.pinned?'<span class="pin-mark" title="Pinned">pinned</span>':'';
       const missMark=hasMisses?'<span class="miss-mark" title="Heartbeat misses">'+route.misses+' miss'+(route.misses===1?'':'es')+'</span>':'';
       const nameCell='<span class="route-name">'+esc(route.name)+'</span>'+pinMark+missMark;
+      const displayURL=urlForRoute(route);
       const statusClasses=['status-badge'];
       if(route.pinned) statusClasses.push('pinned');
       if(hasMisses) statusClasses.push('missed');
-      tr.innerHTML='<td>'+nameCell+'</td><td><a href="'+route.url+'" target="_blank" rel="noopener noreferrer">'+route.url+'</a></td><td>'+esc(route.title||'')+'</td><td><span class="'+statusClasses.join(' ')+'">'+esc(route.status)+'</span></td><td><span class="age">'+esc(registered.age)+'</span></td><td><span class="datetime">'+esc(registered.date)+'<br>'+esc(registered.time)+'</span></td><td>'+esc(target)+'</td><td>'+esc(route.heartbeatPath)+'</td><td>'+route.misses+'</td><td>'+esc(route.exec||'')+'</td><td class="route-actions"><button data-open="'+route.url+'">Open</button> <button data-copy="'+route.url+'">Copy</button> <button data-delete="'+route.name+'">Unregister</button> <button data-pin="'+route.name+'" data-pinned="'+route.pinned+'">'+(route.pinned?'Unpin':'Pin')+'</button> <button data-kill="'+route.name+'">Kill</button></td>';
+      tr.innerHTML='<td>'+nameCell+'</td><td><a href="'+displayURL+'" target="_blank" rel="noopener noreferrer">'+displayURL+'</a></td><td>'+esc(route.title||'')+'</td><td><span class="'+statusClasses.join(' ')+'">'+esc(route.status)+'</span></td><td><span class="age">'+esc(registered.age)+'</span></td><td><span class="datetime">'+esc(registered.date)+'<br>'+esc(registered.time)+'</span></td><td>'+esc(target)+'</td><td>'+esc(route.heartbeatPath)+'</td><td>'+route.misses+'</td><td>'+esc(route.exec||'')+'</td><td class="route-actions"><button data-open="'+displayURL+'">Open</button> <button data-copy="'+displayURL+'">Copy</button> <button data-delete="'+route.name+'">Unregister</button> <button data-pin="'+route.name+'" data-pinned="'+route.pinned+'">'+(route.pinned?'Unpin':'Pin')+'</button> <button data-kill="'+route.name+'">Kill</button></td>';
       return tr;
     }));
   }catch(err){body.innerHTML='<tr><td colspan="11">Failed to load routes: '+esc(err.message)+'</td></tr>';}
 }
 function esc(value){return String(value).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+function urlForRoute(route){
+  if(location.hostname==='dev.localhost'||location.hostname==='router.localhost') return route.url;
+  const port=location.port?':'+location.port:'';
+  return location.protocol+'//'+route.name+'.'+location.hostname+port;
+}
 function formatRegistered(value){
   const date=new Date(value);
   if(Number.isNaN(date.getTime())) return {age:'unknown',date:'',time:''};
@@ -132,7 +138,7 @@ registerForm.addEventListener('submit',async event=>{
     const res=await checkedFetch('/router/routes/'+encodeURIComponent(name)+force,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
     const route=await res.json();
     closeRegisterDialog();
-    setStatus('Registered '+route.name+' at '+route.url,'success');
+    setStatus('Registered '+route.name+' at '+urlForRoute(route),'success');
     await loadRoutes();
   }catch(err){setRegisterError(err.message);}
   finally{submit.disabled=false; submit.textContent='Register';}

@@ -39,6 +39,17 @@ local-router serve
 local-router serve --json
 ```
 
+To also expose the same routes through a tailnet/domain wildcard, point DNS at the
+machine and pass the base host. For example, if `ppc.dikka.dev` and
+`*.ppc.dikka.dev` resolve to this machine's Tailscale IP:
+
+```bash
+local-router serve --addr 0.0.0.0:80 --external-host ppc.dikka.dev
+```
+
+Then the dashboard is also available at `http://ppc.dikka.dev`, and a route named
+`demo` is also available at `http://demo.ppc.dikka.dev`.
+
 Keep that process running. Then start any local web server separately. For example:
 
 ```bash
@@ -66,6 +77,19 @@ Open that URL in the browser. The dashboard is available at:
 ```text
 http://dev.localhost
 http://router.localhost
+```
+
+If the service was started with `--external-host ppc.dikka.dev`, the dashboard is
+also available at:
+
+```text
+http://ppc.dikka.dev
+```
+
+and registered routes also get external URLs such as:
+
+```text
+http://demo.ppc.dikka.dev
 ```
 
 ## Help
@@ -137,9 +161,10 @@ local-router serve
 
 ## Core idea
 
-- Run one small persistent loopback-only router/reverse proxy on port 80.
+- Run one small persistent router/reverse proxy on port 80; loopback-only by default.
 - Let ad hoc local servers register and unregister routes dynamically.
 - Use `.localhost` hostnames by default to avoid hosts-file edits.
+- Optionally serve a configured external host and wildcard subdomain routes for tailnet/domain access.
 - Provide a live dashboard at `http://dev.localhost` and `http://router.localhost`.
 
 ## CLI reference

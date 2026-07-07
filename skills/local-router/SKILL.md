@@ -7,7 +7,7 @@ description: Use the local-router CLI to manage friendly .localhost URLs for alr
 
 ## Scope
 
-Use `local-router` for local loopback development routing: mapping an already-running local HTTP server on a port to a friendly URL like `http://demo.localhost`.
+Use `local-router` for local development routing: mapping an already-running local HTTP server on a port to a friendly URL like `http://demo.localhost`. It can optionally expose the same dashboard/routes through a configured tailnet/domain host such as `http://ppc.dikka.dev` and `http://demo.ppc.dikka.dev` when DNS and binding are set up separately.
 
 Do not treat it as public deployment, DNS management, Windows hosts-file management, Caddy/nginx configuration, or a tool that starts the target app server. The target server must already be running separately.
 
@@ -43,7 +43,7 @@ If the CLI is not installed but the current directory is the repo, prefer `go in
    ```bash
    local-router register demo --port 5173 --title "Demo app"
    ```
-4. Report the printed route URL plus the dashboard URL `http://dev.localhost`.
+4. Report the printed route URL plus the dashboard URL `http://dev.localhost`. If the service is configured with `--external-host <host>`, also report `http://<host>` and `http://<route>.<host>` when useful.
 
 Useful commands:
 
@@ -59,7 +59,7 @@ Use `--force` only when replacing an existing route is clearly intended or after
 
 ## Starting the service
 
-The service binds `127.0.0.1:80` so nice URLs do not need a port. On Linux/WSL that normally requires elevated privileges, a systemd unit with `CAP_NET_BIND_SERVICE`, or a binary granted that capability.
+The service binds `127.0.0.1:80` by default so nice URLs do not need a port. For tailnet/domain access, start it with `--addr 0.0.0.0:80 --external-host <host>` or set `LOCAL_ROUTER_ADDR` / `LOCAL_ROUTER_EXTERNAL_HOST` in the systemd service. On Linux/WSL, binding port 80 normally requires elevated privileges, a systemd unit with `CAP_NET_BIND_SERVICE`, or a binary granted that capability.
 
 Foreground quick test after granting low-port bind capability:
 
@@ -79,15 +79,16 @@ Registering a clearly requested route is fine. Ask or explain before:
 - pinning/unpinning a route if the user did not ask for that behavior;
 - changing service installation or systemd state.
 
-This is local-only tooling, but service changes can affect port 80 and current browser workflows.
+This is local-first tooling, but service changes can affect port 80, current browser workflows, and any tailnet/domain clients that can reach the bound address.
 
 ## Troubleshooting
 
 - `router service is not running`: start `local-router serve` or the systemd service.
-- bind failure on `127.0.0.1:80`: check port 80 conflicts or bind permission.
+- bind failure on `127.0.0.1:80` or `0.0.0.0:80`: check port 80 conflicts or bind permission.
 - `local-router` cannot be found: make sure Go's install directory is on `PATH`, or follow `docs/systemd.md` to copy the installed CLI to `/usr/local/bin/local-router` for service use.
 - Browser `.localhost` works but CLI DNS does not: the CLI talks to `http://127.0.0.1` and sends `Host: dev.localhost`; do not require CLI DNS resolution.
 - route URL is unavailable: the route exists, but the target server is not reachable on its registered host/port.
+- external route like `http://demo.ppc.dikka.dev` fails DNS: verify both the base record and wildcard record point to the machine's Tailscale IP and are DNS-only when using Cloudflare.
 
 ## Current limitations
 

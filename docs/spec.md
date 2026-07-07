@@ -35,7 +35,7 @@ without per-run Windows hosts-file edits and without hand-editing/reloading Cadd
 - Required custom DNS setup.
 - Required Windows hosts-file mutation.
 - Starting, supervising, or owning the target web servers.
-- Internet/LAN exposure; this is loopback-only.
+- Public internet exposure. The default service is loopback-only; optional tailnet/domain exposure can be enabled explicitly with a configured external host and non-loopback bind address.
 - HTTPS as a v1 requirement, though it should remain possible later.
 - Automatic persistent route storage across router restarts. Manual JSONL snapshot import/export is supported.
 
@@ -45,7 +45,7 @@ without per-run Windows hosts-file edits and without hand-editing/reloading Cadd
 
 A small persistent local service that:
 
-- Listens on loopback HTTP port 80.
+- Listens on loopback HTTP port 80 by default, or on an explicitly configured non-loopback address for tailnet/domain access.
 - Routes requests by `Host` header.
 - Reverse-proxies registered hosts to local target ports.
 - Exposes a small REST registration API.
@@ -92,7 +92,7 @@ Rationale:
 - `.localhost` is reserved for local/loopback use.
 - It avoids hosts-file edits for common browser behavior.
 - It is more predictable than `.local`, which is associated with mDNS/Bonjour and LAN discovery.
-- Custom short domains are possible later but require resolver/DNS/hosts setup beyond the reverse proxy itself.
+- Custom short domains are possible with `--external-host <host>` but require DNS setup beyond the reverse proxy itself, for example a base record and wildcard subdomain pointing at the machine's Tailscale IP.
 
 Reserved route names:
 

@@ -35,6 +35,24 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now local-router@$USER.service
 ```
 
+For tailnet/domain access, add a systemd override before starting or restart after adding it:
+
+```bash
+sudo systemctl edit local-router@$USER.service
+```
+
+Example override when `ppc.dikka.dev` and `*.ppc.dikka.dev` resolve to this
+machine's Tailscale IP:
+
+```ini
+[Service]
+Environment=LOCAL_ROUTER_ADDR=0.0.0.0:80
+Environment=LOCAL_ROUTER_EXTERNAL_HOST=ppc.dikka.dev
+```
+
+`LOCAL_ROUTER_ADDR` can also be set to the machine's Tailscale IP plus `:80` if
+binding only to the tailnet interface works in your environment.
+
 Check it:
 
 ```bash
@@ -48,6 +66,13 @@ Dashboard URLs:
 ```text
 http://dev.localhost
 http://router.localhost
+```
+
+With the external-host override above, the dashboard and route URLs are also:
+
+```text
+http://ppc.dikka.dev
+http://demo.ppc.dikka.dev
 ```
 
 ## Update

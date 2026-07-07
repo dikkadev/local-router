@@ -4,3 +4,4 @@ dist/
 *.exe
 *.test
 coverage.out
+.env

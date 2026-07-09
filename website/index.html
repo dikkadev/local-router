@@ -540,7 +540,7 @@ td .name{font-weight:700;white-space:nowrap}
         </div>
       </div>
       <figcaption>
-        <span class="cap-left">Entries stamped in the order received. Demonstration repeats; your routes will hold still.</span>
+        <span class="cap-left">Entries stamped in the order received. Stamped once; a name, once assigned, holds still.</span>
         <span class="cap-right mono">4 of 4 assigned</span>
       </figcaption>
     </figure>
@@ -666,12 +666,12 @@ td .name{font-weight:700;white-space:nowrap}
 
     <figure class="fig1 plate" aria-label="Figure 2a: photograph of the dashboard at dev.localhost">
       <div class="fig-bar">
-        <span><span class="fig-no">FIG. 2a</span> &nbsp;<span class="fig-title">The instrument in service</span></span>
-        <span class="fig-aux">dev.localhost · unretouched</span>
+        <span><span class="fig-no">FIG. 2a</span> &nbsp;<span class="fig-title">Dashboard at dev.localhost</span></span>
+        <span class="fig-aux">Live capture · author's machine</span>
       </div>
       <img src="dashboard.png" width="3120" height="940" loading="lazy" alt="Screenshot of the local-router dashboard at dev.localhost listing four routes — pi-usage, notifreader, wad-field-kit, and site — with their URLs, targets, status badges, and per-route actions.">
       <figcaption>
-        <span class="cap-left">Photographed on the author's machine. <em>The last row is this document, served through the product it documents.</em></span>
+        <span class="cap-left">The same ledger, kept by the instrument itself: status, age, heartbeat, and per-route actions.</span>
         <span>2026-07</span>
       </figcaption>
     </figure>
@@ -850,26 +850,42 @@ td .name{font-weight:700;white-space:nowrap}
 
   if (reduced.matches){ complete(); return; }
 
-  var timers = [];
-  var STAGGER = 1000, START = 700, STAMP_LAG = 340, HOLD = 3600;
-  var cycleLen = START + (rows.length - 1) * STAGGER + STAMP_LAG + HOLD;
+  /* Plays exactly once: the first time the user scrolls while the ledger is
+     on screen. Falls back to playing after a few seconds if they never scroll. */
+  var STAGGER = 1000, START = 400, STAMP_LAG = 340;
+  var fig = document.querySelector('.fig1');
+  var played = false, scrolled = false, visible = !('IntersectionObserver' in window);
+  var io = null, fallback;
 
-  function clearTimers(){ timers.forEach(clearTimeout); timers = []; }
-
-  function cycle(){
-    rows.forEach(function(r){ r.classList.remove('struck','stamped'); });
-    void document.body.offsetWidth; /* flush, so re-adding classes restarts animations */
+  function play(){
+    if (played) return;
+    played = true;
+    clearTimeout(fallback);
+    if (io) io.disconnect();
+    window.removeEventListener('scroll', onScroll);
     rows.forEach(function(r, i){
-      timers.push(setTimeout(function(){ r.classList.add('struck'); }, START + i * STAGGER));
-      timers.push(setTimeout(function(){ r.classList.add('stamped'); }, START + i * STAGGER + STAMP_LAG));
+      setTimeout(function(){ r.classList.add('struck'); }, START + i * STAGGER);
+      setTimeout(function(){ r.classList.add('stamped'); }, START + i * STAGGER + STAMP_LAG);
     });
   }
 
-  cycle();
-  var loop = setInterval(function(){ clearTimers(); cycle(); }, cycleLen);
+  function maybePlay(){ if (scrolled && visible) play(); }
+  function onScroll(){ scrolled = true; maybePlay(); }
+
+  window.addEventListener('scroll', onScroll, {passive: true});
+
+  if (io === null && 'IntersectionObserver' in window){
+    io = new IntersectionObserver(function(entries){
+      visible = entries.some(function(e){ return e.isIntersecting; });
+      maybePlay();
+    }, {threshold: 0.4});
+    io.observe(fig);
+  }
+
+  fallback = setTimeout(function(){ scrolled = true; visible = true; maybePlay(); }, 6000);
 
   reduced.addEventListener && reduced.addEventListener('change', function(e){
-    if (e.matches){ clearInterval(loop); clearTimers(); complete(); }
+    if (e.matches){ played = true; clearTimeout(fallback); complete(); }
   });
 
   /* copy button */

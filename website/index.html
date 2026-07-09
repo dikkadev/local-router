@@ -451,15 +451,9 @@ td .name{font-weight:700;white-space:nowrap}
 .footnotes .fn{color:var(--red);font-weight:700;margin-right:6px}
 
 /* ---------- colophon ---------- */
-.colophon{margin-top:44px;border-top:2px solid var(--ink);padding-top:18px}
-.rev-wrap{overflow-x:auto}
-.rev{min-width:520px;border:none}
-.rev th{border-bottom:1px solid var(--hair-strong)}
-.rev td{font-size:12.5px;border-bottom:1px solid var(--hair)}
-.rev td:first-child{color:var(--red);font-weight:700;font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
-.rev td:nth-child(2){white-space:nowrap;color:var(--ink-faint);font-family:ui-monospace,Menlo,Consolas,monospace}
+.colophon{margin-top:44px;border-top:2px solid var(--ink);padding-top:4px}
 .colo-foot{
-  margin-top:22px;
+  margin-top:12px;
   display:flex;flex-wrap:wrap;gap:8px 28px;justify-content:space-between;
   font-size:11.5px;color:var(--ink-faint);letter-spacing:.06em;
 }
@@ -489,11 +483,10 @@ td .name{font-weight:700;white-space:nowrap}
   <header>
     <div class="masthead">
       <div class="brand mono">local-router<span class="tld">.localhost</span></div>
-      <div class="doc">Product data sheet · DS-LR-09 · Rev C</div>
+      <div class="doc">Product data sheet</div>
     </div>
     <div class="mast-sub">
-      <span>Local URL switchboard — loopback service, software only</span>
-      <span>Sheet 1 of 1</span>
+      <span>A tiny local URL switchboard — friendly names for ports on your own machine</span>
     </div>
   </header>
 
@@ -508,7 +501,7 @@ td .name{font-weight:700;white-space:nowrap}
     <figure class="fig1" aria-label="Figure 1: route assignment ledger showing ports being renamed">
       <div class="fig-bar">
         <span><span class="fig-no">FIG. 1</span> &nbsp;<span class="fig-title">Route assignment ledger</span></span>
-        <span class="fig-aux">Before / after · actual size</span>
+        <span class="fig-aux">Before / after</span>
       </div>
       <div class="ledger" id="ledger">
         <div class="ledger-head">
@@ -821,20 +814,9 @@ td .name{font-weight:700;white-space:nowrap}
 
   <!-- COLOPHON -->
   <footer class="colophon">
-    <div class="rev-wrap">
-      <table class="rev">
-        <thead><tr><th>Rev</th><th>Date</th><th>Change record</th></tr></thead>
-        <tbody>
-          <tr><td>A</td><td>2026-05</td><td>Initial issue. Ports observed answering to numbers; corrective action proposed.</td></tr>
-          <tr><td>B</td><td>2026-06</td><td>Isometric drawing of appliance removed. There is no appliance. There was never an appliance.</td></tr>
-          <tr><td>C</td><td>2026-07</td><td>Route assignment ledger promoted to Fig. 1, where it belonged all along.</td></tr>
-        </tbody>
-      </table>
-    </div>
     <div class="colo-foot">
-      <span class="mono">DS-LR-09 · REV C · SHEET 1/1</span>
       <span>Open source · <a href="https://forge.dikka.dev/lab/local-router">forge.dikka.dev/lab/local-router</a></span>
-      <span>Printed on recycled photons.</span>
+      <span class="mono">local-router</span>
     </div>
   </footer>
 </div>
@@ -851,16 +833,16 @@ td .name{font-weight:700;white-space:nowrap}
   if (reduced.matches){ complete(); return; }
 
   /* Plays exactly once: the first time the user scrolls while the ledger is
-     on screen. Falls back to playing after a few seconds if they never scroll. */
-  var STAGGER = 1000, START = 400, STAMP_LAG = 340;
+     on screen, or after the ledger has been on screen for 7s without a scroll. */
+  var STAGGER = 1000, START = 400, STAMP_LAG = 340, DWELL = 7000;
   var fig = document.querySelector('.fig1');
   var played = false, scrolled = false, visible = !('IntersectionObserver' in window);
-  var io = null, fallback;
+  var io = null, dwell = null;
 
   function play(){
     if (played) return;
     played = true;
-    clearTimeout(fallback);
+    clearTimeout(dwell);
     if (io) io.disconnect();
     window.removeEventListener('scroll', onScroll);
     rows.forEach(function(r, i){
@@ -874,18 +856,27 @@ td .name{font-weight:700;white-space:nowrap}
 
   window.addEventListener('scroll', onScroll, {passive: true});
 
-  if (io === null && 'IntersectionObserver' in window){
-    io = new IntersectionObserver(function(entries){
-      visible = entries.some(function(e){ return e.isIntersecting; });
-      maybePlay();
-    }, {threshold: 0.4});
-    io.observe(fig);
+  function setVisible(v){
+    visible = v;
+    if (v && dwell === null){
+      dwell = setTimeout(play, DWELL);
+    } else if (!v && dwell !== null){
+      clearTimeout(dwell); dwell = null;
+    }
+    maybePlay();
   }
 
-  fallback = setTimeout(function(){ scrolled = true; visible = true; maybePlay(); }, 6000);
+  if ('IntersectionObserver' in window){
+    io = new IntersectionObserver(function(entries){
+      setVisible(entries.some(function(e){ return e.isIntersecting; }));
+    }, {threshold: 0.4});
+    io.observe(fig);
+  } else {
+    setVisible(true);
+  }
 
   reduced.addEventListener && reduced.addEventListener('change', function(e){
-    if (e.matches){ played = true; clearTimeout(fallback); complete(); }
+    if (e.matches){ played = true; clearTimeout(dwell); complete(); }
   });
 
   /* copy button */

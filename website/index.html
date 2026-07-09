@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>local-router — Product Data Sheet</title>
+<style>
+:root{
+  --paper:#f4f1e9;
+  --paper-deep:#ece8dd;
+  --ink:#1c1a17;
+  --ink-soft:#4d483f;
+  --ink-faint:#8f8877;
+  --hair:#c8c1af;
+  --hair-strong:#a89f8a;
+  --red:#c22c1e;
+  --red-soft:rgba(194,44,30,.08);
+  --red-softer:rgba(194,44,30,.05);
+  --stamp-shadow:rgba(194,44,30,.25);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#211f1c;
+    --paper-deep:#1a1815;
+    --ink:#e9e4d6;
+    --ink-soft:#b6afa0;
+    --ink-faint:#7d7666;
+    --hair:#3f3b33;
+    --hair-strong:#575142;
+    --red:#e2523f;
+    --red-soft:rgba(226,82,63,.12);
+    --red-softer:rgba(226,82,63,.07);
+    --stamp-shadow:rgba(226,82,63,.3);
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;background:var(--paper-deep)}
+body{
+  background:var(--paper-deep);
+  color:var(--ink);
+  font-family:"Helvetica Neue",Helvetica,Arial,"Liberation Sans",sans-serif;
+  font-size:16px;
+  line-height:1.55;
+  font-variant-numeric:tabular-nums;
+  padding:clamp(8px,2.5vw,36px);
+}
+code,kbd,.mono{
+  font-family:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  font-variant-numeric:tabular-nums;
+}
+
+/* ---------- sheet + crop marks ---------- */
+.sheet{
+  position:relative;
+  max-width:960px;
+  margin:0 auto;
+  background:var(--paper);
+  border:1px solid var(--hair-strong);
+  padding:clamp(18px,4vw,56px) clamp(16px,5vw,64px) clamp(28px,4vw,48px);
+}
+.crop{position:absolute;width:22px;height:22px;pointer-events:none}
+.crop::before,.crop::after{content:"";position:absolute;background:var(--ink-faint)}
+.crop::before{width:22px;height:1px}
+.crop::after{width:1px;height:22px}
+.crop.tl{top:-30px;left:-30px}.crop.tl::before{bottom:0;left:0}.crop.tl::after{right:0;top:0}
+.crop.tr{top:-30px;right:-30px}.crop.tr::before{bottom:0;right:0}.crop.tr::after{left:0;top:0}
+.crop.bl{bottom:-30px;left:-30px}.crop.bl::before{top:0;left:0}.crop.bl::after{right:0;bottom:0}
+.crop.br{bottom:-30px;right:-30px}.crop.br::before{top:0;right:0}.crop.br::after{left:0;bottom:0}
+@media (max-width:1080px){.crop{display:none}}
+
+/* ---------- masthead ---------- */
+.masthead{
+  display:flex;flex-wrap:wrap;gap:4px 24px;justify-content:space-between;align-items:baseline;
+  border-bottom:2px solid var(--ink);
+  padding-bottom:10px;margin-bottom:6px;
+}
+.masthead .brand{font-size:20px;font-weight:700;letter-spacing:.04em}
+.masthead .brand .tld{color:var(--red)}
+.masthead .doc{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+.mast-sub{
+  display:flex;flex-wrap:wrap;gap:2px 24px;justify-content:space-between;
+  font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);
+  border-bottom:1px solid var(--hair);
+  padding-bottom:8px;
+}
+
+/* ---------- section heads ---------- */
+section{margin-top:56px}
+.sec-head{
+  display:flex;align-items:baseline;gap:14px;
+  border-bottom:1px solid var(--hair-strong);
+  padding-bottom:6px;margin-bottom:22px;
+}
+.sec-head .no{
+  color:var(--red);font-weight:700;font-size:13px;letter-spacing:.05em;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+.sec-head h2{
+  font-size:13px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
+}
+.sec-note{font-size:12px;color:var(--ink-faint);margin-left:auto;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+@media (max-width:560px){.sec-note{display:none}}
+
+p{max-width:64ch;color:var(--ink-soft)}
+p strong{color:var(--ink)}
+sup{color:var(--red);font-size:.68em;font-weight:700}
+a{color:var(--ink);text-decoration-color:var(--red);text-underline-offset:3px}
+a:hover{color:var(--red)}
+
+/* ---------- hero ---------- */
+.hero{margin-top:44px}
+.hero h1{
+  font-size:clamp(30px,5.4vw,52px);
+  line-height:1.06;
+  font-weight:700;
+  letter-spacing:-.015em;
+  max-width:15ch;
+}
+.hero .subline{
+  margin-top:14px;
+  font-size:clamp(15px,2.2vw,19px);
+  color:var(--ink-soft);
+}
+.hero .subline .rule-in{color:var(--red)}
+.hero-meta{
+  margin-top:10px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);
+}
+
+/* ---------- figure 1 ledger ---------- */
+figure{margin:0}
+.fig1{margin-top:34px;border:1px solid var(--ink);background:var(--paper)}
+.fig-bar{
+  display:flex;justify-content:space-between;gap:12px;align-items:baseline;
+  border-bottom:1px solid var(--ink);
+  padding:8px 14px;
+  font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+}
+.fig-bar .fig-no{color:var(--red);font-weight:700}
+.fig-bar .fig-title{font-weight:700}
+.fig-bar .fig-aux{color:var(--ink-faint);letter-spacing:.1em}
+@media (max-width:560px){.fig-bar .fig-aux{display:none}}
+
+.ledger{padding:6px 0 10px}
+.ledger-head,.ledger-row{
+  display:grid;
+  grid-template-columns:56px minmax(120px,1fr) 34px minmax(150px,1.6fr);
+  gap:0 10px;align-items:center;
+  padding:0 14px;
+}
+.ledger-head{
+  font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);
+  padding-top:8px;padding-bottom:6px;
+  border-bottom:1px solid var(--hair);
+}
+.ledger-row{
+  min-height:56px;
+  border-bottom:1px solid var(--hair);
+  position:relative;
+}
+.ledger-row:last-child{border-bottom:none}
+.lr-no{
+  color:var(--red);font-size:12px;font-weight:700;
+  font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.05em;
+}
+.lr-port{
+  position:relative;display:inline-block;justify-self:start;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:clamp(13px,1.9vw,16px);
+  color:var(--ink);
+  transition:color .5s ease;
+  white-space:nowrap;
+  padding:1px 2px;
+}
+.lr-port::after{ /* strike of ink */
+  content:"";position:absolute;left:-2px;right:-2px;top:54%;height:2px;
+  background:var(--ink-soft);
+  transform:scaleX(0);transform-origin:left center;
+  transition:transform .28s cubic-bezier(.5,0,.3,1);
+  rotate:-1.1deg;
+}
+.ledger-row.struck .lr-port{color:var(--ink-faint)}
+.ledger-row.struck .lr-port::after{transform:scaleX(1)}
+.lr-arrow{
+  color:var(--ink-faint);text-align:center;font-size:15px;
+  opacity:0;transition:opacity .3s ease;
+}
+.ledger-row.struck .lr-arrow{opacity:1}
+.lr-stamp{justify-self:start;min-width:0}
+.stamp{
+  display:inline-block;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:clamp(12px,1.9vw,16px);
+  font-weight:700;
+  color:var(--red);
+  border:2px solid var(--red);
+  padding:4px 9px;
+  letter-spacing:.01em;
+  white-space:nowrap;
+  filter:url(#inkbleed);
+  background:var(--red-softer);
+  opacity:0;
+  transform:rotate(var(--rot,-2deg)) scale(1.5);
+}
+.ledger-row.stamped .stamp{
+  animation:stampdown .3s cubic-bezier(.2,1.4,.4,1) forwards;
+}
+@keyframes stampdown{
+  0%{opacity:0;transform:rotate(var(--rot,-2deg)) scale(1.5)}
+  55%{opacity:1;transform:rotate(var(--rot,-2deg)) scale(.94)}
+  75%{transform:rotate(var(--rot,-2deg)) scale(1.03)}
+  100%{opacity:1;transform:rotate(var(--rot,-2deg)) scale(1)}
+}
+.stamp .tld{opacity:.62;font-weight:400}
+figcaption{
+  border-top:1px solid var(--ink);
+  padding:8px 14px;
+  font-size:12px;color:var(--ink-faint);
+  display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+figcaption .cap-left em{font-style:italic}
+
+@media (max-width:640px){
+  .ledger-head{grid-template-columns:44px 1fr}
+  .ledger-head .lh-arrow,.ledger-head .lh-stamp{display:none}
+  .ledger-row{
+    grid-template-columns:44px 1fr;
+    grid-template-rows:auto auto;
+    padding-top:9px;padding-bottom:11px;
+    row-gap:6px;
+  }
+  .lr-no{grid-row:1 / span 2;align-self:start;padding-top:3px}
+  .lr-arrow{display:none}
+  .lr-stamp{grid-column:2}
+}
+
+.keyline{
+  margin-top:26px;
+  border-left:3px solid var(--red);
+  padding:2px 0 2px 16px;
+  font-size:clamp(16px,2.4vw,20px);
+  line-height:1.4;
+  max-width:44ch;
+}
+.keyline b{font-weight:700}
+
+/* ---------- operation steps ---------- */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--hair-strong)}
+.step{padding:18px 18px 20px;border-right:1px solid var(--hair-strong);min-width:0}
+.step:last-child{border-right:none}
+.step .step-no{
+  font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--red);font-weight:700;
+}
+.step h3{font-size:15px;font-weight:700;margin:6px 0 8px;letter-spacing:.01em}
+.step p{font-size:13.5px;line-height:1.5}
+@media (max-width:760px){
+  .steps{grid-template-columns:1fr}
+  .step{border-right:none;border-bottom:1px solid var(--hair-strong)}
+  .step:last-child{border-bottom:none}
+}
+.cmd{
+  margin-top:12px;
+  background:var(--paper-deep);
+  border:1px solid var(--hair);
+  border-left:3px solid var(--ink);
+  padding:10px 12px;
+  font-size:12.5px;
+  line-height:1.6;
+  overflow-x:auto;
+}
+.cmd .ps1{color:var(--red);user-select:none}
+.cmd .cmt{color:var(--ink-faint)}
+.cmd .out{color:var(--ink-soft)}
+pre.cmd{white-space:pre-wrap;overflow-wrap:break-word}
+
+.vocab{
+  margin-top:20px;
+  display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;
+  font-size:12px;
+}
+.vocab .vlabel{letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-size:10.5px;margin-right:4px}
+.vocab code{
+  border:1px solid var(--hair);
+  padding:2px 7px;
+  background:var(--paper-deep);
+  color:var(--ink-soft);
+}
+
+/* ---------- scope box ---------- */
+.scope{
+  margin-top:56px;
+  border:2px solid var(--red);
+  position:relative;
+  background:var(--red-softer);
+}
+.scope-head{
+  background:var(--red);
+  color:var(--paper);
+  padding:7px 14px;
+  font-size:12px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;
+  display:flex;justify-content:space-between;gap:10px;
+}
+.scope-head .shx{letter-spacing:.1em;opacity:.85}
+.scope-body{padding:16px 18px 18px}
+.scope ul{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:10px 28px;max-width:none}
+@media (max-width:640px){.scope ul{grid-template-columns:1fr}}
+.scope li{
+  font-size:14px;color:var(--ink);line-height:1.45;
+  padding-left:24px;position:relative;
+}
+.scope li::before{
+  content:"✕";position:absolute;left:0;top:0;
+  color:var(--red);font-weight:700;font-size:13px;
+}
+.scope li b{letter-spacing:.02em}
+.scope li span{color:var(--ink-soft)}
+.scope .scope-note{
+  margin-top:14px;padding-top:12px;border-top:1px solid var(--red);
+  font-size:13px;color:var(--ink-soft);max-width:none;
+}
+
+/* ---------- tables ---------- */
+.tscroll{overflow-x:auto;border:1px solid var(--ink)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:560px}
+caption{text-align:left;font-size:12px;color:var(--ink-faint);padding:8px 12px;caption-side:bottom;border-top:1px solid var(--ink)}
+th{
+  text-align:left;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-faint);font-weight:700;
+  border-bottom:1px solid var(--ink);
+  padding:9px 12px;
+  white-space:nowrap;
+}
+td{border-bottom:1px solid var(--hair);padding:10px 12px;vertical-align:top}
+tr:last-child td{border-bottom:none}
+td.mono,th.num{font-variant-numeric:tabular-nums}
+td .rno{color:var(--red);font-weight:700;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
+td .name{font-weight:700;white-space:nowrap}
+.route-url{white-space:nowrap}
+.route-url .tld{color:var(--ink-faint)}
+.target{color:var(--ink-soft);white-space:nowrap}
+
+.badge{
+  display:inline-block;font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:10.5px;font-weight:700;letter-spacing:.1em;
+  padding:2px 7px;border:1.5px solid currentColor;
+  white-space:nowrap;
+}
+.badge+.badge{margin-left:6px}
+.b-live{color:var(--ink)}
+.b-live::before{content:"●";margin-right:5px;font-size:8px;vertical-align:1px}
+.b-pin{color:var(--ink-soft);border-style:solid}
+.b-miss{
+  color:var(--red);
+  filter:url(#inkbleed);
+  transform:rotate(-2deg);
+  background:var(--red-softer);
+}
+@media (max-width:640px){table{font-size:12.5px}}
+
+/* comparison table */
+.cmp td:first-child{white-space:nowrap;font-weight:700}
+.cmp .self td{background:var(--red-softer)}
+.cmp .self td:first-child{color:var(--red)}
+
+/* spec table */
+.spec{min-width:0}
+.spec td:first-child{
+  width:38%;color:var(--ink-faint);
+  font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;
+  padding-top:12px;
+}
+.spec td:last-child{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+.spec-zero{color:var(--red);font-weight:700}
+
+/* ---------- extended range ---------- */
+.range-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:28px;align-items:start}
+@media (max-width:760px){.range-grid{grid-template-columns:1fr}}
+.range-fig{border:1px solid var(--ink)}
+.range-fig .fig-body{padding:16px 14px 18px}
+.reach-row{
+  display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;
+  font-size:12.5px;padding:7px 0;border-bottom:1px dashed var(--hair);
+}
+.reach-row:last-child{border-bottom:none}
+.reach-row .who{
+  flex:0 0 118px;
+  font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;
+}
+.reach-row code{color:var(--ink)}
+.reach-row .ok{color:var(--red);font-weight:700;font-size:11px;letter-spacing:.1em}
+.reach-row.denied code{color:var(--ink-faint);text-decoration:line-through;text-decoration-color:var(--ink-soft);text-decoration-thickness:1.5px}
+.reach-row.denied .ok{color:var(--ink-faint)}
+
+/* ---------- procurement ---------- */
+.order{
+  border:1px solid var(--ink);
+  display:flex;flex-wrap:wrap;align-items:stretch;
+}
+.order-label{
+  flex:0 0 auto;
+  border-right:1px solid var(--ink);
+  padding:14px 16px;
+  font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;
+  display:flex;align-items:center;
+  background:var(--paper-deep);
+}
+.order-code{
+  flex:1 1 320px;
+  padding:14px 16px;
+  font-size:clamp(12px,1.8vw,14.5px);
+  display:flex;align-items:center;
+  overflow-x:auto;
+  white-space:nowrap;
+}
+.order-code .ps1{color:var(--red);margin-right:8px;user-select:none}
+.copy-btn{
+  flex:0 0 auto;
+  border:none;border-left:1px solid var(--ink);
+  background:var(--paper);
+  color:var(--red);
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:11px;font-weight:700;letter-spacing:.16em;
+  padding:14px 20px;
+  cursor:pointer;
+}
+.copy-btn:hover{background:var(--red-soft)}
+.copy-btn:focus-visible{outline:2px solid var(--red);outline-offset:-4px}
+.copy-btn.copied{background:var(--red);color:var(--paper)}
+@media (max-width:640px){
+  .order-label{flex:1 1 100%;border-right:none;border-bottom:1px solid var(--ink);padding:9px 14px}
+  .order-code{flex:1 1 100%;min-width:0}
+  .copy-btn{flex:1 1 100%;border-left:none;border-top:1px solid var(--ink);padding:11px 20px}
+}
+.proc-cols{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:28px;align-items:start}
+@media (max-width:760px){.proc-cols{grid-template-columns:1fr}}
+.proc-cols h3{
+  font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);
+  margin-bottom:10px;font-weight:700;
+}
+
+/* ---------- footnotes ---------- */
+.footnotes{
+  margin-top:64px;
+  border-top:1px solid var(--ink);
+  padding-top:14px;
+  font-size:12.5px;color:var(--ink-soft);
+  columns:2;column-gap:36px;column-rule:1px solid var(--hair);
+}
+@media (max-width:700px){.footnotes{columns:1}}
+.footnotes p{break-inside:avoid;margin-bottom:10px;font-size:12.5px;max-width:none}
+.footnotes .fn{color:var(--red);font-weight:700;margin-right:6px}
+
+/* ---------- colophon ---------- */
+.colophon{margin-top:44px;border-top:2px solid var(--ink);padding-top:18px}
+.rev-wrap{overflow-x:auto}
+.rev{min-width:520px;border:none}
+.rev th{border-bottom:1px solid var(--hair-strong)}
+.rev td{font-size:12.5px;border-bottom:1px solid var(--hair)}
+.rev td:first-child{color:var(--red);font-weight:700;font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
+.rev td:nth-child(2){white-space:nowrap;color:var(--ink-faint);font-family:ui-monospace,Menlo,Consolas,monospace}
+.colo-foot{
+  margin-top:22px;
+  display:flex;flex-wrap:wrap;gap:8px 28px;justify-content:space-between;
+  font-size:11.5px;color:var(--ink-faint);letter-spacing:.06em;
+}
+.colo-foot a{color:var(--ink-soft)}
+
+@media (prefers-reduced-motion: reduce){
+  .lr-port::after,.lr-arrow,.lr-port{transition:none}
+  .ledger-row.stamped .stamp{animation:none;opacity:1;transform:rotate(var(--rot,-2deg)) scale(1)}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <filter id="inkbleed" x="-6%" y="-14%" width="112%" height="128%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="2" seed="7" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="1.6"/>
+  </filter>
+</svg>
+
+<div class="sheet">
+  <span class="crop tl" aria-hidden="true"></span>
+  <span class="crop tr" aria-hidden="true"></span>
+  <span class="crop bl" aria-hidden="true"></span>
+  <span class="crop br" aria-hidden="true"></span>
+
+  <header>
+    <div class="masthead">
+      <div class="brand mono">local-router<span class="tld">.localhost</span></div>
+      <div class="doc">Product data sheet · DS-LR-09 · Rev C</div>
+    </div>
+    <div class="mast-sub">
+      <span>Local URL switchboard — loopback service, software only</span>
+      <span>Sheet 1 of 1</span>
+    </div>
+  </header>
+
+  <main>
+
+  <!-- §0 HERO -->
+  <section class="hero" aria-labelledby="h-hero">
+    <h1 id="h-hero">Your local dev servers deserve names.</h1>
+    <p class="subline">Friendly URLs for unfriendly local ports. <span class="rule-in">—</span> No hosts-file edits, no Docker, no Caddyfile, no port memorizing.<sup>1</sup></p>
+    <p class="hero-meta">§ 0 · General description · applies to any server already listening on 127.0.0.1</p>
+
+    <figure class="fig1" aria-label="Figure 1: route assignment ledger showing ports being renamed">
+      <div class="fig-bar">
+        <span><span class="fig-no">FIG. 1</span> &nbsp;<span class="fig-title">Route assignment ledger</span></span>
+        <span class="fig-aux">Before / after · actual size</span>
+      </div>
+      <div class="ledger" id="ledger">
+        <div class="ledger-head">
+          <span>Entry</span><span>As found</span><span class="lh-arrow"></span><span class="lh-stamp">As assigned</span>
+        </div>
+        <div class="ledger-row" style="--rot:-1.6deg">
+          <span class="lr-no">R-01</span>
+          <span class="lr-port">localhost:5173</span>
+          <span class="lr-arrow" aria-hidden="true">→</span>
+          <span class="lr-stamp"><span class="stamp">checkout-redesign<span class="tld">.localhost</span></span></span>
+        </div>
+        <div class="ledger-row" style="--rot:1.2deg">
+          <span class="lr-no">R-02</span>
+          <span class="lr-port">localhost:3000</span>
+          <span class="lr-arrow" aria-hidden="true">→</span>
+          <span class="lr-stamp"><span class="stamp">docs-preview<span class="tld">.localhost</span></span></span>
+        </div>
+        <div class="ledger-row" style="--rot:-0.9deg">
+          <span class="lr-no">R-03</span>
+          <span class="lr-port">localhost:8080</span>
+          <span class="lr-arrow" aria-hidden="true">→</span>
+          <span class="lr-stamp"><span class="stamp">webhook-tester<span class="tld">.localhost</span></span></span>
+        </div>
+        <div class="ledger-row" style="--rot:1.8deg">
+          <span class="lr-no">R-04</span>
+          <span class="lr-port">localhost:49152</span>
+          <span class="lr-arrow" aria-hidden="true">→</span>
+          <span class="lr-stamp"><span class="stamp">client-demo<span class="tld">.localhost</span></span></span>
+        </div>
+      </div>
+      <figcaption>
+        <span class="cap-left">Entries stamped in the order received. Demonstration repeats; your routes will hold still.</span>
+        <span class="cap-right mono">4 of 4 assigned</span>
+      </figcaption>
+    </figure>
+
+    <p class="keyline"><b>Ports name machines. Route names name work.</b> A port number tells you where a socket is; a route name tells you what you were doing there.</p>
+  </section>
+
+  <!-- §1 OPERATION -->
+  <section aria-labelledby="h-op">
+    <div class="sec-head">
+      <span class="no">§ 1</span>
+      <h2 id="h-op">Operation</h2>
+      <span class="sec-note">Three steps, no supervision</span>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <span class="step-no">Step 1</span>
+        <h3>Your server is already running</h3>
+        <p>Start your dev server however you always do. local-router never launches it, never restarts it, never watches it grow up.<sup>2</sup></p>
+        <pre class="cmd mono"><span class="ps1">$</span> pnpm dev
+<span class="out">  ➜  Local:  http://localhost:5173/</span></pre>
+      </div>
+      <div class="step">
+        <span class="step-no">Step 2</span>
+        <h3>Register a name for its port</h3>
+        <p>One command binds a route name to the port. Names carry intent, so future-you knows which of six Vite processes is which.</p>
+        <pre class="cmd mono"><span class="ps1">$</span> local-router register checkout-redesign \
+    --port 5173 --title "Checkout redesign"</pre>
+      </div>
+      <div class="step">
+        <span class="step-no">Step 3</span>
+        <h3>Open it</h3>
+        <p>Browsers resolve <code>.localhost</code> to loopback natively.<sup>1</sup> No hosts file was harmed. The dashboard lists every route at <code>dev.localhost</code>.</p>
+        <pre class="cmd mono"><span class="ps1">$</span> open http://checkout-redesign.localhost</pre>
+      </div>
+    </div>
+    <div class="vocab mono">
+      <span class="vlabel">Control vocabulary</span>
+      <code>register</code><code>routes</code><code>status</code><code>pin</code><code>unpin</code><code>unregister</code><code>export</code><code>import</code>
+      <span class="vlabel" style="margin-left:8px">also: REST API, agreeable to scripts and coding agents</span>
+    </div>
+
+    <!-- SCOPE BOX -->
+    <aside class="scope" aria-labelledby="h-scope">
+      <div class="scope-head">
+        <span id="h-scope">Scope — not included</span>
+        <span class="shx">Read before filing feature requests</span>
+      </div>
+      <div class="scope-body">
+        <ul>
+          <li><b>Not a launcher.</b> <span>It does not start, stop, or supervise servers. Yours were running before it arrived.</span></li>
+          <li><b>Not a tunnel.</b> <span>Nothing is exposed to the public internet. Loopback-only by default, bound to 127.0.0.1:80.</span></li>
+          <li><b>Not a reverse-proxy framework.</b> <span>No config file dialect, no middleware ecosystem, no plugins.</span></li>
+          <li><b>Not a deployment story.</b> <span>Optional tailnet reach (§ 3) extends to machines you trust — and stops there.</span></li>
+        </ul>
+        <p class="scope-note">These omissions are load-bearing. A switchboard that also drove the trains would be a worse switchboard.</p>
+      </div>
+    </aside>
+  </section>
+
+  <!-- §2 ROUTE TABLE -->
+  <section aria-labelledby="h-routes">
+    <div class="sec-head">
+      <span class="no">§ 2</span>
+      <h2 id="h-routes">Route table</h2>
+      <span class="sec-note">As shown at dev.localhost</span>
+    </div>
+    <p style="margin-bottom:18px">Every registered route, live in memory.<sup>3</sup> The dashboard renders this table with the same information; below, typeset for the record. Pinned routes stay put; a route whose target stops answering is flagged, not deleted — the name outlives the process.</p>
+    <figure>
+      <div class="tscroll">
+        <table>
+          <caption><span style="color:var(--red);font-weight:700">FIG. 2</span> &nbsp;Route inventory, one working afternoon. Names shown are examples; yours will be more specific, or at least should be.</caption>
+          <thead>
+            <tr><th>No.</th><th>Route</th><th>URL</th><th>Target</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono"><span class="rno">R-01</span></td>
+              <td><span class="name">checkout-redesign</span></td>
+              <td class="mono route-url">checkout-redesign<span class="tld">.localhost</span></td>
+              <td class="mono target">127.0.0.1:5173</td>
+              <td><span class="badge b-live">LIVE</span></td>
+            </tr>
+            <tr>
+              <td class="mono"><span class="rno">R-02</span></td>
+              <td><span class="name">docs-preview</span></td>
+              <td class="mono route-url">docs-preview<span class="tld">.localhost</span></td>
+              <td class="mono target">127.0.0.1:3000</td>
+              <td><span class="badge b-live">LIVE</span><span class="badge b-pin">PINNED</span></td>
+            </tr>
+            <tr>
+              <td class="mono"><span class="rno">R-03</span></td>
+              <td><span class="name">webhook-tester</span></td>
+              <td class="mono route-url">webhook-tester<span class="tld">.localhost</span></td>
+              <td class="mono target">127.0.0.1:8080</td>
+              <td><span class="badge b-live">LIVE</span></td>
+            </tr>
+            <tr>
+              <td class="mono"><span class="rno">R-04</span></td>
+              <td><span class="name">client-demo</span></td>
+              <td class="mono route-url">client-demo<span class="tld">.localhost</span></td>
+              <td class="mono target">127.0.0.1:49152</td>
+              <td><span class="badge b-live">LIVE</span><span class="badge b-pin">PINNED</span></td>
+            </tr>
+            <tr>
+              <td class="mono"><span class="rno">R-05</span></td>
+              <td><span class="name">design-review</span></td>
+              <td class="mono route-url">design-review<span class="tld">.localhost</span></td>
+              <td class="mono target">127.0.0.1:5174</td>
+              <td><span class="badge b-live">LIVE</span></td>
+            </tr>
+            <tr>
+              <td class="mono"><span class="rno">R-06</span></td>
+              <td><span class="name">staging-proxy</span></td>
+              <td class="mono route-url">staging-proxy<span class="tld">.localhost</span></td>
+              <td class="mono target">127.0.0.1:8443</td>
+              <td><span class="badge b-miss">MISSED ⌁</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </figure>
+  </section>
+
+  <!-- §3 EXTENDED OPERATING RANGE -->
+  <section aria-labelledby="h-range">
+    <div class="sec-head">
+      <span class="no">§ 3</span>
+      <h2 id="h-range">Extended operating range</h2>
+      <span class="sec-note">Optional · tailnet / trusted host</span>
+    </div>
+    <div class="range-grid">
+      <div>
+        <p>Start the router with an external host and every route becomes reachable under that host as well — <strong>same local work, reachable from the machines you trust.</strong><sup>4</sup> Useful for a phone on your tailnet, a laptop across the desk, a colleague checking the client demo.</p>
+        <pre class="cmd mono" style="margin-top:16px"><span class="ps1">$</span> local-router --external-host maple.ts.net
+<span class="cmt"># client-demo is now also:</span>
+<span class="out">  http://client-demo.maple.ts.net</span></pre>
+        <p style="margin-top:16px;font-size:13.5px">This is explicitly not publishing. Nothing traverses the open internet; reach ends at the boundary of your tailnet or trusted domain.</p>
+      </div>
+      <figure class="range-fig">
+        <div class="fig-bar">
+          <span><span class="fig-no">FIG. 3</span> &nbsp;<span class="fig-title">Reachability schedule</span></span>
+        </div>
+        <div class="fig-body mono">
+          <div class="reach-row">
+            <span class="who">This machine</span>
+            <code>client-demo.localhost</code>
+            <span class="ok">— SERVED</span>
+          </div>
+          <div class="reach-row">
+            <span class="who">Your phone ·&nbsp;tailnet</span>
+            <code>client-demo.maple.ts.net</code>
+            <span class="ok">— SERVED</span>
+          </div>
+          <div class="reach-row">
+            <span class="who">Trusted laptop</span>
+            <code>client-demo.maple.ts.net</code>
+            <span class="ok">— SERVED</span>
+          </div>
+          <div class="reach-row denied">
+            <span class="who">The internet</span>
+            <code>client-demo.anywhere</code>
+            <span class="ok">— NO ROUTE</span>
+          </div>
+        </div>
+        <figcaption><span class="cap-left">Default range: 127.0.0.1 only. Extended range requires the flag; the internet requires a different product.</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- §4 RELATED EQUIPMENT -->
+  <section aria-labelledby="h-rel">
+    <div class="sec-head">
+      <span class="no">§ 4</span>
+      <h2 id="h-rel">Related equipment</h2>
+      <span class="sec-note">Selection by intended duty</span>
+    </div>
+    <p style="margin-bottom:18px">Fine tools, different jobs. Pick by what you actually need reached, and by whom.</p>
+    <div class="tscroll">
+      <table class="cmp">
+        <caption>Comparison is of scope, not quality. All listed equipment is respected around the shop.</caption>
+        <thead>
+          <tr><th>Instrument</th><th>Intended duty</th><th>Reach for it when…</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Caddy</td>
+            <td>Full reverse proxy &amp; web server: TLS, rewrites, load balancing, a configuration language.</td>
+            <td>you are serving something real, to real users, and want the machinery that implies.</td>
+          </tr>
+          <tr>
+            <td>ngrok</td>
+            <td>Public tunnels from the internet to your machine.</td>
+            <td>someone outside your network must reach a local port, right now, through the front door.</td>
+          </tr>
+          <tr>
+            <td>Portless</td>
+            <td>Adjacent goal — friendly local dev URLs — with its own workflow around how servers run.</td>
+            <td>you want your naming tool more involved in the rest of your dev stack.</td>
+          </tr>
+          <tr class="self">
+            <td>local-router</td>
+            <td>Names for ports on your own machine. Nothing launched, nothing tunneled, nothing configured.</td>
+            <td>the server is already running and the only problem left is remembering :49152.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- §5 PROCUREMENT -->
+  <section aria-labelledby="h-proc">
+    <div class="sec-head">
+      <span class="no">§ 5</span>
+      <h2 id="h-proc">Procurement</h2>
+      <span class="sec-note">Lead time: one go install</span>
+    </div>
+    <div class="order">
+      <span class="order-label">Order code</span>
+      <span class="order-code mono" id="order-code"><span class="ps1">$</span><span id="install-cmd">go install forge.dikka.dev/lab/local-router@latest</span></span>
+      <button class="copy-btn" id="copy-btn" type="button" aria-label="Copy install command">COPY</button>
+    </div>
+    <div class="proc-cols">
+      <div>
+        <h3>Supply data</h3>
+        <div class="tscroll" style="border-color:var(--hair-strong)">
+          <table class="spec">
+            <tbody>
+              <tr><td>Form</td><td>single static binary</td></tr>
+              <tr><td>Language</td><td>Go</td></tr>
+              <tr><td>Default bind</td><td>127.0.0.1:80</td></tr>
+              <tr><td>Route storage</td><td>in-memory</td></tr>
+              <tr><td>Snapshot</td><td>export / import · JSONL<sup>3</sup></td></tr>
+              <tr><td>Dashboard</td><td>http://dev.localhost</td></tr>
+              <tr><td>Control</td><td>CLI · REST API</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <h3>Quantities of note</h3>
+        <div class="tscroll" style="border-color:var(--hair-strong)">
+          <table class="spec">
+            <tbody>
+              <tr><td>Hosts-file edits</td><td><span class="spec-zero">0</span></td></tr>
+              <tr><td>Docker containers required</td><td><span class="spec-zero">0</span></td></tr>
+              <tr><td>Caddyfiles authored</td><td><span class="spec-zero">0</span></td></tr>
+              <tr><td>Ports committed to memory</td><td><span class="spec-zero">0</span></td></tr>
+              <tr><td>Servers launched, all versions<sup>2</sup></td><td><span class="spec-zero">0</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTNOTES -->
+  <section class="footnotes" aria-label="Footnotes">
+    <p><span class="fn">1.</span> Browsers resolve <code>*.localhost</code> to loopback on their own (RFC 6761). Your hosts file remains untouched and, frankly, relieved.</p>
+    <p><span class="fn">2.</span> Cumulative count of servers started, restarted, or supervised by local-router across all releases: zero. This figure is not projected to change.</p>
+    <p><span class="fn">3.</span> Routes live in memory. <code>export routes.jsonl</code> writes them down; <code>import</code> reads them back. That is the entire persistence story, told in full.</p>
+    <p><span class="fn">4.</span> “Reachable from machines you trust” and “reachable from the internet” are different product categories. This sheet describes the first, on purpose.</p>
+  </section>
+
+  </main>
+
+  <!-- COLOPHON -->
+  <footer class="colophon">
+    <div class="rev-wrap">
+      <table class="rev">
+        <thead><tr><th>Rev</th><th>Date</th><th>Change record</th></tr></thead>
+        <tbody>
+          <tr><td>A</td><td>2026-05</td><td>Initial issue. Ports observed answering to numbers; corrective action proposed.</td></tr>
+          <tr><td>B</td><td>2026-06</td><td>Isometric drawing of appliance removed. There is no appliance. There was never an appliance.</td></tr>
+          <tr><td>C</td><td>2026-07</td><td>Route assignment ledger promoted to Fig. 1, where it belonged all along.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="colo-foot">
+      <span class="mono">DS-LR-09 · REV C · SHEET 1/1</span>
+      <span>Open source · <a href="https://forge.dikka.dev/lab/local-router">forge.dikka.dev/lab/local-router</a></span>
+      <span>Printed on recycled photons.</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var rows = Array.prototype.slice.call(document.querySelectorAll('.ledger-row'));
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function complete(){
+    rows.forEach(function(r){ r.classList.add('struck','stamped'); });
+  }
+
+  if (reduced.matches){ complete(); return; }
+
+  var timers = [];
+  var STAGGER = 1000, START = 700, STAMP_LAG = 340, HOLD = 3600;
+  var cycleLen = START + (rows.length - 1) * STAGGER + STAMP_LAG + HOLD;
+
+  function clearTimers(){ timers.forEach(clearTimeout); timers = []; }
+
+  function cycle(){
+    rows.forEach(function(r){ r.classList.remove('struck','stamped'); });
+    void document.body.offsetWidth; /* flush, so re-adding classes restarts animations */
+    rows.forEach(function(r, i){
+      timers.push(setTimeout(function(){ r.classList.add('struck'); }, START + i * STAGGER));
+      timers.push(setTimeout(function(){ r.classList.add('stamped'); }, START + i * STAGGER + STAMP_LAG));
+    });
+  }
+
+  cycle();
+  var loop = setInterval(function(){ clearTimers(); cycle(); }, cycleLen);
+
+  reduced.addEventListener && reduced.addEventListener('change', function(e){
+    if (e.matches){ clearInterval(loop); clearTimers(); complete(); }
+  });
+
+  /* copy button */
+  var btn = document.getElementById('copy-btn');
+  var cmd = document.getElementById('install-cmd');
+  if (btn && cmd){
+    btn.addEventListener('click', function(){
+      var text = cmd.textContent;
+      function done(){
+        btn.textContent = 'COPIED';
+        btn.classList.add('copied');
+        setTimeout(function(){ btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1600);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, function(){ fallback(); });
+      } else { fallback(); }
+      function fallback(){
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); done(); } catch(e){}
+        document.body.removeChild(ta);
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

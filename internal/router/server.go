@@ -222,7 +222,7 @@ func (s *Server) StartHeartbeat(ctx context.Context) {
 func (s *Server) CheckAllHeartbeats(ctx context.Context) {
 	for _, route := range s.Store.snapshot() {
 		hit := s.checkRoute(ctx, route)
-		s.Store.updateHeartbeat(route.Name, hit, time.Now())
+		s.Store.updateHeartbeat(route, hit, time.Now())
 	}
 }
 

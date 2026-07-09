@@ -35,6 +35,7 @@ type Route struct {
 	Port          int       `json:"port"`
 	Title         string    `json:"title,omitempty"`
 	Pinned        bool      `json:"pinned"`
+	Shielded      bool      `json:"shielded,omitempty"`
 	Exec          string    `json:"exec,omitempty"`
 	HeartbeatPath string    `json:"heartbeatPath"`
 	CreatedAt     time.Time `json:"createdAt"`
@@ -53,6 +54,7 @@ type RegisterRequest struct {
 	Title         string    `json:"title,omitempty"`
 	TargetHost    string    `json:"targetHost,omitempty"`
 	Pinned        bool      `json:"pinned,omitempty"`
+	Shielded      bool      `json:"shielded,omitempty"`
 	Exec          string    `json:"exec,omitempty"`
 	HeartbeatPath string    `json:"heartbeatPath,omitempty"`
 	CreatedAt     time.Time `json:"createdAt,omitempty"`
@@ -113,10 +115,16 @@ func statusFor(route Route) string {
 		if route.Pinned {
 			return "pinned unavailable"
 		}
+		if route.Shielded {
+			return "restored unavailable"
+		}
 		return "unavailable"
 	}
 	if route.Pinned {
 		return "pinned"
+	}
+	if route.Shielded {
+		return "restored"
 	}
 	return "live"
 }

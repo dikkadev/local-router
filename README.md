@@ -138,7 +138,9 @@ skills/local-router/SKILL.md
 
 ## Service setup
 
-For persistent Linux/WSL systemd setup, see [`docs/systemd.md`](docs/systemd.md). The packaged unit template runs the router as your normal Linux user while granting only the low-port bind capability needed for `127.0.0.1:80`.
+For persistent Linux/WSL systemd setup, see [`docs/systemd.md`](docs/systemd.md). The packaged unit template runs the router as your normal Linux user, grants only the low-port bind capability needed for `127.0.0.1:80`, and restores/saves route definitions across graceful service restarts.
+
+Restored non-pinned routes are shielded from heartbeat removal until their target responds successfully once. This preserves friendly names while dev servers come back after startup without turning those routes into permanent pins.
 
 ## Installing from a checkout
 
@@ -176,7 +178,7 @@ local-router register demo --port 5173 --title "Demo app" --pinned
 local-router register demo --port 3000 --force
 local-router routes
 local-router export routes.jsonl
-local-router import routes.jsonl --mode set
+local-router import routes.jsonl --mode set --shielded
 local-router pin demo
 local-router unpin demo
 local-router unregister demo
@@ -192,4 +194,4 @@ Important: `local-router` does **not** start your target web server. Start your 
 
 ## Status
 
-Initial v1 implementation exists: in-memory route registry, JSONL route snapshot import/export, REST API, control page, reverse proxy, heartbeat cleanup, CLI commands, and a Linux/WSL systemd unit template.
+Initial v1 implementation exists: in-memory route registry with optional graceful restart snapshots, JSONL route import/export, one-time shields for restored routes, REST API, control page, reverse proxy, heartbeat cleanup, CLI commands, and a Linux/WSL systemd unit template.

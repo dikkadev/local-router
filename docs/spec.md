@@ -37,7 +37,7 @@ without per-run Windows hosts-file edits and without hand-editing/reloading Cadd
 - Starting, supervising, or owning the target web servers.
 - Public internet exposure. The default service is loopback-only; optional tailnet/domain exposure can be enabled explicitly with a configured external host and non-loopback bind address.
 - HTTPS as a v1 requirement, though it should remain possible later.
-- Automatic persistent route storage across router restarts. Manual JSONL snapshot import/export is supported.
+- Crash-consistent database-style persistence. Optional JSONL state files save on graceful shutdown and restore on startup; manual import/export remains supported.
 
 ## Key concepts
 
@@ -67,6 +67,7 @@ Optional registration values:
 - `title`: a slightly longer display title.
 - `targetHost`: defaults to `127.0.0.1`.
 - `pinned`: whether the route should remain reserved while the router is running, even when no target is currently responding.
+- `shielded`: transient state for an imported route; misses cannot remove it until its first successful heartbeat.
 - `exec`: small display/debug metadata describing what started or owns the target.
 - `heartbeatPath`: target path used for health checks; defaults to `/`.
 
@@ -158,7 +159,7 @@ Suggested columns:
 - Name
 - URL
 - Title, if provided
-- Status: live, unavailable, stale, pinned
+- Status: live, unavailable, restored, restored unavailable, pinned
 - Target host/port
 - Heartbeat path
 - Miss count
@@ -304,13 +305,16 @@ Proxy behavior:
 
 ## Lifecycle and cleanup
 
-All live route state is in memory. Nothing automatically persists across router restart, including pinned routes. Users can manually snapshot route definitions with `local-router export <path|->` and restore them with `local-router import <path|-> [--mode merge|set] [--force]`.
+Live route state is held in memory. When `serve --state-file <path>` is configured, route definitions are loaded from JSONL at startup and atomically saved on graceful shutdown. `--shield-imported` gives restored non-pinned routes a one-time shield from heartbeat removal until they respond successfully. The shield and transient health fields are not written to the snapshot, so configured startup imports receive a fresh boot-time shield. A malformed state file fails startup; a missing file is an empty initial state. Abrupt termination may lose changes since the preceding graceful snapshot.
+
+Users can also manually snapshot route definitions with `local-router export <path|->` and restore them with `local-router import <path|-> [--mode merge|set] [--force] [--shielded]`.
 
 Use layered cleanup:
 
 - Callers may unregister routes on normal exit.
 - The router checks each target's heartbeat path every 30 seconds.
 - Non-pinned routes become unavailable after 3 misses and are removed after 5 misses.
+- Shielded routes become unavailable but are not removed until their first successful heartbeat clears the shield.
 - Pinned routes become unavailable after misses but remain registered for the lifetime of the router process.
 - Each browser request still attempts to proxy a registered route, so a previously unavailable route can recover as soon as the target is reachable again.
 
@@ -421,8 +425,9 @@ Router lookup should be protected by a mutex or other concurrency-safe structure
 - Project/tool name: `local-router`.
 - Router service listening on loopback port 80.
 - CLI that talks to the router service API.
-- In-memory route registry only; no automatic route persistence across restart.
+- In-memory route registry with optional JSONL load-on-start and graceful save-on-stop.
 - JSONL route snapshot import/export for manual backup/restore.
+- One-time heartbeat-removal shields for imported routes.
 - Required route registration by name and port.
 - Route name normalization to lowercase dash-delimited labels.
 - Optional title, exec metadata, heartbeat path, and pinned route metadata.

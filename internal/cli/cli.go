@@ -290,6 +290,7 @@ func importRoutes(client *Client, args []string, out io.Writer) error {
 	path := ""
 	mode := "merge"
 	force := false
+	shielded := false
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "--mode":
@@ -300,6 +301,8 @@ func importRoutes(client *Client, args []string, out io.Writer) error {
 			mode = args[i]
 		case "--force":
 			force = true
+		case "--shielded":
+			shielded = true
 		default:
 			if strings.HasPrefix(args[i], "--") {
 				return fmt.Errorf("unknown option %s", args[i])
@@ -332,7 +335,7 @@ func importRoutes(client *Client, args []string, out io.Writer) error {
 		}
 	}
 	for _, route := range snapshot {
-		_, err := client.Register(route.Name, router.RegisterRequest{Port: route.Port, Title: route.Title, TargetHost: route.TargetHost, Pinned: route.Pinned, Exec: route.Exec, HeartbeatPath: route.HeartbeatPath, CreatedAt: route.CreatedAt}, force || mode == "set")
+		_, err := client.Register(route.Name, router.RegisterRequest{Port: route.Port, Title: route.Title, TargetHost: route.TargetHost, Pinned: route.Pinned, Shielded: shielded, Exec: route.Exec, HeartbeatPath: route.HeartbeatPath, CreatedAt: route.CreatedAt}, force || mode == "set")
 		if err != nil {
 			return fmt.Errorf("import %s: %w", route.Name, err)
 		}

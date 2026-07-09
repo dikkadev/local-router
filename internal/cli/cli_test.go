@@ -114,10 +114,29 @@ func TestExportAndImportJSONL(t *testing.T) {
 	}
 }
 
+func TestImportShielded(t *testing.T) {
+	s := router.NewServer()
+	server := httptest.NewServer(s)
+	defer server.Close()
+	path := filepath.Join(t.TempDir(), "routes.jsonl")
+	if err := os.WriteFile(path, []byte("{\"name\":\"demo\",\"port\":5173}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var stdout, stderr bytes.Buffer
+	code := Run([]string{"import", path, "--shielded"}, Config{BaseURL: server.URL, Stdout: &stdout, Stderr: &stderr})
+	if code != 0 {
+		t.Fatalf("code=%d stderr=%q", code, stderr.String())
+	}
+	route, err := s.Store.Get("demo")
+	if err != nil || !route.Shielded {
+		t.Fatalf("imported route was not shielded: route=%+v err=%v", route, err)
+	}
+}
+
 func TestHelpCommands(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := Run([]string{"--help"}, Config{Stdout: &stdout, Stderr: &stderr})
-	if code != 0 || !strings.Contains(stdout.String(), "SERVICE COMMAND") || !strings.Contains(stdout.String(), `go install forge.dikka.dev/lab/local-router@latest`) {
+	if code != 0 || !strings.Contains(stdout.String(), "SERVICE COMMAND") || !strings.Contains(stdout.String(), "--state-file") || !strings.Contains(stdout.String(), `go install forge.dikka.dev/lab/local-router@latest`) {
 		t.Fatalf("global help code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
 	}
 	stdout.Reset()

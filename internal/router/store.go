@@ -55,6 +55,7 @@ func (s *Store) Register(rawName string, req RegisterRequest, force bool) (Route
 		Port:          req.Port,
 		Title:         req.Title,
 		Pinned:        req.Pinned,
+		Shielded:      req.Shielded && !req.Pinned,
 		Exec:          req.Exec,
 		HeartbeatPath: heartbeatPath,
 		CreatedAt:     createdAt,
@@ -140,28 +141,40 @@ func (s *Store) SetPinned(rawName string, pinned bool) (RouteView, error) {
 		return RouteView{}, ErrNotFound
 	}
 	route.Pinned = pinned
+	if pinned {
+		route.Shielded = false
+	}
 	s.routes[name] = route
 	return viewFor(route), nil
 }
 
-func (s *Store) updateHeartbeat(name string, hit bool, checkedAt time.Time) {
+func (s *Store) updateHeartbeat(checked Route, hit bool, checkedAt time.Time) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	route, ok := s.routes[name]
-	if !ok {
+	route, ok := s.routes[checked.Name]
+	if !ok || !sameHeartbeatTarget(route, checked) {
 		return
 	}
 	route.LastCheckAt = checkedAt
 	if hit {
 		route.Misses = 0
+		route.Shielded = false
 	} else {
 		route.Misses++
 	}
-	if route.Misses >= RemoveAfterMisses && !route.Pinned {
-		delete(s.routes, name)
+	if route.Misses >= RemoveAfterMisses && !route.Pinned && !route.Shielded {
+		delete(s.routes, route.Name)
 		return
 	}
-	s.routes[name] = route
+	s.routes[route.Name] = route
+}
+
+func sameHeartbeatTarget(current, checked Route) bool {
+	return current.Name == checked.Name &&
+		current.TargetHost == checked.TargetHost &&
+		current.Port == checked.Port &&
+		current.HeartbeatPath == checked.HeartbeatPath &&
+		current.CreatedAt.Equal(checked.CreatedAt)
 }
 
 func (s *Store) snapshot() []Route {

@@ -90,6 +90,6 @@ This is local-first tooling, but service changes can affect port 80, current bro
 - route URL is unavailable: the route exists, but the target server is not reachable on its registered host/port.
 - external route like `http://demo.ppc.dikka.dev` fails DNS: verify both the base record and wildcard record point to the machine's Tailscale IP and are DNS-only when using Cloudflare.
 
-## Current limitations
+## Persistence and limitations
 
-Routes are in-memory and do not automatically survive router service restarts. Use `local-router export routes.jsonl` and `local-router import routes.jsonl [--mode merge|set]` for manual JSONL snapshots. The router does not start, stop, or supervise target app servers.
+The packaged systemd unit restores route definitions at startup and saves them on graceful shutdown using `/var/lib/local-router-<user>/routes.jsonl`. Restored routes are shielded from heartbeat removal until their target responds successfully once. Outside systemd, use `local-router serve --state-file <path> --shield-imported`, or use `local-router export routes.jsonl` and `local-router import routes.jsonl [--mode merge|set] [--shielded]` manually. Abrupt termination may lose changes since the last graceful snapshot. The router does not start, stop, or supervise target app servers.

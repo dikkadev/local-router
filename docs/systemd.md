@@ -27,7 +27,7 @@ sudo install -m 0755 "$(go env GOPATH)/bin/local-router" /usr/local/bin/local-ro
 
 ## Install the system service
 
-The packaged unit is a template so the service can run as your normal Linux user while systemd grants only the low-port bind capability.
+The packaged unit is a template so the service can run as your normal Linux user while systemd grants only the low-port bind capability. It also creates `/var/lib/local-router-$USER/` for an automatic route snapshot.
 
 ```bash
 sudo install -m 0644 packaging/systemd/local-router@.service /etc/systemd/system/local-router@.service
@@ -101,7 +101,9 @@ local-router status
 
 If the service is not running yet, skip the `stop` command and run the install/copy/start steps.
 
-Route state is in memory, so stopping or restarting the service clears registered routes, including pinned routes. If you want a manual snapshot, run `local-router export routes.jsonl` before stopping and `local-router import routes.jsonl --mode set` after starting. Otherwise, re-register any routes you still need after the update.
+The packaged unit restores `/var/lib/local-router-$USER/routes.jsonl` when it starts and atomically rewrites that snapshot on a graceful stop or restart. Imported non-pinned routes are initially **restored/shielded**: heartbeat misses can mark them unavailable but cannot remove them before their target has responded successfully once. That first successful heartbeat removes the shield, after which the normal five-miss cleanup applies. Pinned routes remain pinned as usual.
+
+A malformed or unreadable state file prevents startup rather than silently discarding route definitions. A missing state file is treated as an empty first start. Abrupt termination or a machine crash cannot run the graceful export, so changes since the previous successful stop may be absent; manual `local-router export` remains available for explicit snapshots.
 
 ## Stop or remove
 
@@ -126,6 +128,18 @@ sudo ss -ltnp 'sport = :80'
 ```
 
 Stop the conflicting local service or choose which tool should own local port 80.
+
+### Route state cannot be loaded or saved
+
+Inspect the service log and state directory:
+
+```bash
+journalctl -u local-router@$USER.service -n 50 --no-pager
+systemctl show local-router@$USER.service -p StateDirectory
+sudo ls -la /var/lib/local-router-$USER/
+```
+
+The unit's `StateDirectory=local-router-%i` gives the configured service user write access despite `ProtectSystem=strict`. Do not move the state file under the user's home directory without also reconsidering `ProtectHome=read-only`.
 
 ### Service cannot bind port 80
 

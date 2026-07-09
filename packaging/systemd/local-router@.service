@@ -5,7 +5,8 @@ After=network.target
 [Service]
 Type=simple
 User=%i
-ExecStart=/usr/local/bin/local-router serve --json
+StateDirectory=local-router-%i
+ExecStart=/usr/local/bin/local-router serve --json --state-file /var/lib/local-router-%i/routes.jsonl --shield-imported
 Restart=on-failure
 RestartSec=2s
 

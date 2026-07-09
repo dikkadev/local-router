@@ -18,6 +18,8 @@ func main() {
 		addr := envOrDefault("LOCAL_ROUTER_ADDR", "127.0.0.1:80")
 		externalHost := os.Getenv("LOCAL_ROUTER_EXTERNAL_HOST")
 		jsonLogs := false
+		stateFile := ""
+		shieldImported := false
 		args := os.Args[2:]
 		for i := 0; i < len(args); i++ {
 			switch args[i] {
@@ -39,6 +41,15 @@ func main() {
 					os.Exit(2)
 				}
 				externalHost = args[i]
+			case "--state-file":
+				i++
+				if i >= len(args) {
+					fmt.Fprintln(os.Stderr, "--state-file requires a value")
+					os.Exit(2)
+				}
+				stateFile = args[i]
+			case "--shield-imported":
+				shieldImported = true
 			default:
 				fmt.Fprintf(os.Stderr, "unknown serve option %s\n\n", args[i])
 				os.Exit(cli.Run([]string{"serve", "--help"}, cli.Config{}))
@@ -51,10 +62,25 @@ func main() {
 		defer stop()
 		server := router.NewServer()
 		server.ExternalHost = externalHost
+		if stateFile != "" {
+			count, err := server.Store.LoadStateFile(stateFile, shieldImported)
+			if err != nil {
+				log.Error("failed to load route state", "path", stateFile, "error", err)
+				os.Exit(1)
+			}
+			log.Info("route state loaded", "path", stateFile, "routes", count, "shielded", shieldImported)
+		}
 		if err := server.ListenAndServe(ctx, addr); err != nil {
 			log.Error("failed to start local-router", "error", err)
 			fmt.Fprintf(os.Stderr, "local-router could not bind %s. Port 80 may require privileges or may already be in use. %v\n", addr, err)
 			os.Exit(1)
+		}
+		if stateFile != "" {
+			if err := server.Store.SaveStateFile(stateFile); err != nil {
+				log.Error("failed to save route state", "path", stateFile, "error", err)
+				os.Exit(1)
+			}
+			log.Info("route state saved", "path", stateFile, "routes", len(server.Store.List()))
 		}
 		return
 	}

@@ -11,10 +11,12 @@ USAGE
   local-router <command> [options]
 
 SERVICE COMMAND
-  serve [--addr 127.0.0.1:80] [--external-host <host>] [--json]
+  serve [--addr 127.0.0.1:80] [--external-host <host>] [--state-file <path>] [--shield-imported] [--json]
       Start the long-running local reverse proxy. This is the actual router.
       Keep it running while you use registered routes.
       Use --external-host to also serve a tailnet/domain dashboard and subdomain routes.
+      Use --state-file to restore routes at startup and save them on graceful shutdown.
+      Use --shield-imported to keep restored routes until they become healthy once.
       Use --json for structured JSON logs.
 
 CLIENT COMMANDS
@@ -39,8 +41,9 @@ CLIENT COMMANDS
   export <path|->
       Write current routes as JSONL, one route per line.
 
-  import <path|-> [--mode merge|set] [--force]
+  import <path|-> [--mode merge|set] [--force] [--shielded]
       Read routes from JSONL. Default mode is merge; set replaces current routes.
+      Shielded imports survive misses until their first successful heartbeat.
 
   unregister <name>
       Remove a route.
@@ -103,7 +106,7 @@ EXAMPLE
 `)
 	case "serve":
 		fmt.Fprint(w, `USAGE
-  local-router serve [--addr 127.0.0.1:80] [--external-host <host>] [--json]
+  local-router serve [--addr 127.0.0.1:80] [--external-host <host>] [--state-file <path>] [--shield-imported] [--json]
 
 Start the long-running router/reverse-proxy service.
 Keep this process running while you use registered routes.
@@ -112,12 +115,15 @@ OPTIONS
   --addr <addr>            Listen address, default 127.0.0.1:80 or LOCAL_ROUTER_ADDR
   --external-host <host>   Also serve dashboard at host and routes at <name>.<host>
                            Can also be set with LOCAL_ROUTER_EXTERNAL_HOST
+  --state-file <path>      Restore on startup and save on graceful shutdown
+  --shield-imported        Keep restored routes until they become healthy once
   --json                   Emit structured JSON logs using charmbracelet/log
 
 EXAMPLES
   local-router serve
   local-router serve --json
   local-router serve --addr 0.0.0.0:80 --external-host ppc.dikka.dev
+  local-router serve --state-file /var/lib/local-router/routes.jsonl --shield-imported
   local-router serve --addr 127.0.0.1:8080   # testing only; URLs need :8080
 `)
 	case "export":
@@ -132,14 +138,15 @@ EXAMPLE
 `)
 	case "import":
 		fmt.Fprint(w, `USAGE
-  local-router import <path|-> [--mode merge|set] [--force]
+  local-router import <path|-> [--mode merge|set] [--force] [--shielded]
 
 Read routes from JSONL. Default mode is merge. Set mode removes current routes
-before importing. Merge mode reports conflicts unless --force is used.
+before importing. Merge mode reports conflicts unless --force is used. Shielded
+routes survive heartbeat misses until they respond successfully once.
 
 EXAMPLE
   local-router import routes.jsonl
-  local-router import routes.jsonl --mode set
+  local-router import routes.jsonl --mode set --shielded
 `)
 	case "status", "routes", "unregister", "pin", "unpin":
 		fmt.Fprintf(w, "USAGE\n  local-router %s", command)

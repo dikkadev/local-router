@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>local-router — Product Data Sheet</title>
+<title>local-router — Friendly local URLs</title>
 <style>
 :root{
   --paper:#f4f1e9;
@@ -70,13 +70,11 @@ code,kbd,.mono{
 
 /* ---------- masthead ---------- */
 .masthead{
-  display:flex;flex-wrap:wrap;gap:4px 24px;justify-content:space-between;align-items:baseline;
   border-bottom:2px solid var(--ink);
   padding-bottom:10px;margin-bottom:6px;
 }
 .masthead .brand{font-size:20px;font-weight:700;letter-spacing:.04em}
 .masthead .brand .tld{color:var(--red)}
-.masthead .doc{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
 .mast-sub{
   display:flex;flex-wrap:wrap;gap:2px 24px;justify-content:space-between;
   font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);
@@ -91,10 +89,6 @@ section{margin-top:56px}
   border-bottom:1px solid var(--hair-strong);
   padding-bottom:6px;margin-bottom:22px;
 }
-.sec-head .no{
-  color:var(--red);font-weight:700;font-size:13px;letter-spacing:.05em;
-  font-family:ui-monospace,Menlo,Consolas,monospace;
-}
 .sec-head h2{
   font-size:13px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
 }
@@ -103,7 +97,6 @@ section{margin-top:56px}
 
 p{max-width:64ch;color:var(--ink-soft)}
 p strong{color:var(--ink)}
-sup{color:var(--red);font-size:.68em;font-weight:700}
 a{color:var(--ink);text-decoration-color:var(--red);text-underline-offset:3px}
 a:hover{color:var(--red)}
 
@@ -126,7 +119,7 @@ a:hover{color:var(--red)}
   margin-top:10px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);
 }
 
-/* ---------- figure 1 ledger ---------- */
+/* ---------- ports-to-names demo ---------- */
 figure{margin:0}
 .fig1{margin-top:34px;border:1px solid var(--ink);background:var(--paper)}
 .fig-bar{
@@ -135,7 +128,6 @@ figure{margin:0}
   padding:8px 14px;
   font-size:11px;letter-spacing:.16em;text-transform:uppercase;
 }
-.fig-bar .fig-no{color:var(--red);font-weight:700}
 .fig-bar .fig-title{font-weight:700}
 .fig-bar .fig-aux{color:var(--ink-faint);letter-spacing:.1em}
 @media (max-width:560px){.fig-bar .fig-aux{display:none}}
@@ -144,7 +136,7 @@ figure{margin:0}
 .ledger{padding:6px 0 10px}
 .ledger-head,.ledger-row{
   display:grid;
-  grid-template-columns:56px minmax(120px,1fr) 34px minmax(150px,1.6fr);
+  grid-template-columns:minmax(120px,1fr) 34px minmax(150px,1.6fr);
   gap:0 10px;align-items:center;
   padding:0 14px;
 }
@@ -159,10 +151,6 @@ figure{margin:0}
   position:relative;
 }
 .ledger-row:last-child{border-bottom:none}
-.lr-no{
-  color:var(--red);font-size:12px;font-weight:700;
-  font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.05em;
-}
 .lr-port{
   position:relative;display:inline-block;justify-self:start;
   font-family:ui-monospace,Menlo,Consolas,monospace;
@@ -221,17 +209,13 @@ figcaption{
 figcaption .cap-left em{font-style:italic}
 
 @media (max-width:640px){
-  .ledger-head{grid-template-columns:44px 1fr}
-  .ledger-head .lh-arrow,.ledger-head .lh-stamp{display:none}
+  .ledger-head{display:none}
   .ledger-row{
-    grid-template-columns:44px 1fr;
-    grid-template-rows:auto auto;
+    grid-template-columns:1fr;
     padding-top:9px;padding-bottom:11px;
     row-gap:6px;
   }
-  .lr-no{grid-row:1 / span 2;align-self:start;padding-top:3px}
   .lr-arrow{display:none}
-  .lr-stamp{grid-column:2}
 }
 
 .keyline{
@@ -333,7 +317,6 @@ th{
 td{border-bottom:1px solid var(--hair);padding:10px 12px;vertical-align:top}
 tr:last-child td{border-bottom:none}
 td.mono,th.num{font-variant-numeric:tabular-nums}
-td .rno{color:var(--red);font-weight:700;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 td .name{font-weight:700;white-space:nowrap}
 .route-url{white-space:nowrap}
 .route-url .tld{color:var(--ink-faint)}
@@ -391,7 +374,7 @@ td .name{font-weight:700;white-space:nowrap}
 .reach-row.denied code{color:var(--ink-faint);text-decoration:line-through;text-decoration-color:var(--ink-soft);text-decoration-thickness:1.5px}
 .reach-row.denied .ok{color:var(--ink-faint)}
 
-/* ---------- procurement ---------- */
+/* ---------- install ---------- */
 .order{
   border:1px solid var(--ink);
   display:flex;flex-wrap:wrap;align-items:stretch;
@@ -438,18 +421,6 @@ td .name{font-weight:700;white-space:nowrap}
   margin-bottom:10px;font-weight:700;
 }
 
-/* ---------- footnotes ---------- */
-.footnotes{
-  margin-top:64px;
-  border-top:1px solid var(--ink);
-  padding-top:14px;
-  font-size:12.5px;color:var(--ink-soft);
-  columns:2;column-gap:36px;column-rule:1px solid var(--hair);
-}
-@media (max-width:700px){.footnotes{columns:1}}
-.footnotes p{break-inside:avoid;margin-bottom:10px;font-size:12.5px;max-width:none}
-.footnotes .fn{color:var(--red);font-weight:700;margin-right:6px}
-
 /* ---------- colophon ---------- */
 .colophon{margin-top:44px;border-top:2px solid var(--ink);padding-top:4px}
 .colo-foot{
@@ -483,7 +454,6 @@ td .name{font-weight:700;white-space:nowrap}
   <header>
     <div class="masthead">
       <div class="brand mono">local-router<span class="tld">.localhost</span></div>
-      <div class="doc">Product data sheet</div>
     </div>
     <div class="mast-sub">
       <span>A tiny local URL switchboard — friendly names for ports on your own machine</span>
@@ -492,67 +462,59 @@ td .name{font-weight:700;white-space:nowrap}
 
   <main>
 
-  <!-- §0 HERO -->
   <section class="hero" aria-labelledby="h-hero">
     <h1 id="h-hero">Your local dev servers deserve names.</h1>
-    <p class="subline">Friendly URLs for unfriendly local ports. <span class="rule-in">—</span> No hosts-file edits, no Docker, no Caddyfile, no port memorizing.<sup>1</sup></p>
-    <p class="hero-meta">§ 0 · General description · applies to any server already listening on 127.0.0.1</p>
+    <p class="subline">Friendly URLs for unfriendly local ports. <span class="rule-in">—</span> No hosts-file edits, no Docker, no Caddyfile, no port memorizing.</p>
+    <p class="hero-meta">For anything already listening on 127.0.0.1</p>
 
-    <figure class="fig1" aria-label="Figure 1: route assignment ledger showing ports being renamed">
+    <figure class="fig1" aria-label="Ports being renamed as local routes">
       <div class="fig-bar">
-        <span><span class="fig-no">FIG. 1</span> &nbsp;<span class="fig-title">Route assignment ledger</span></span>
+        <span class="fig-title">From ports to names</span>
         <span class="fig-aux">Before / after</span>
       </div>
       <div class="ledger" id="ledger">
         <div class="ledger-head">
-          <span>Entry</span><span>As found</span><span class="lh-arrow"></span><span class="lh-stamp">As assigned</span>
+          <span>Running at</span><span class="lh-arrow"></span><span class="lh-stamp">Open at</span>
         </div>
         <div class="ledger-row" style="--rot:-1.6deg">
-          <span class="lr-no">R-01</span>
           <span class="lr-port">localhost:5173</span>
           <span class="lr-arrow" aria-hidden="true">→</span>
           <span class="lr-stamp"><span class="stamp">checkout-redesign<span class="tld">.localhost</span></span></span>
         </div>
         <div class="ledger-row" style="--rot:1.2deg">
-          <span class="lr-no">R-02</span>
           <span class="lr-port">localhost:3000</span>
           <span class="lr-arrow" aria-hidden="true">→</span>
           <span class="lr-stamp"><span class="stamp">docs-preview<span class="tld">.localhost</span></span></span>
         </div>
         <div class="ledger-row" style="--rot:-0.9deg">
-          <span class="lr-no">R-03</span>
           <span class="lr-port">localhost:8080</span>
           <span class="lr-arrow" aria-hidden="true">→</span>
           <span class="lr-stamp"><span class="stamp">webhook-tester<span class="tld">.localhost</span></span></span>
         </div>
         <div class="ledger-row" style="--rot:1.8deg">
-          <span class="lr-no">R-04</span>
           <span class="lr-port">localhost:49152</span>
           <span class="lr-arrow" aria-hidden="true">→</span>
           <span class="lr-stamp"><span class="stamp">client-demo<span class="tld">.localhost</span></span></span>
         </div>
       </div>
       <figcaption>
-        <span class="cap-left">Entries stamped in the order received. Stamped once; a name, once assigned, holds still.</span>
-        <span class="cap-right mono">4 of 4 assigned</span>
+        <span class="cap-left">A name stays useful even when the port does not.</span>
       </figcaption>
     </figure>
 
     <p class="keyline"><b>Ports name machines. Route names name work.</b> A port number tells you where a socket is; a route name tells you what you were doing there.</p>
   </section>
 
-  <!-- §1 OPERATION -->
   <section aria-labelledby="h-op">
     <div class="sec-head">
-      <span class="no">§ 1</span>
-      <h2 id="h-op">Operation</h2>
+      <h2 id="h-op">How it works</h2>
       <span class="sec-note">Three steps, no supervision</span>
     </div>
     <div class="steps">
       <div class="step">
         <span class="step-no">Step 1</span>
         <h3>Your server is already running</h3>
-        <p>Start your dev server however you always do. local-router never launches it, never restarts it, never watches it grow up.<sup>2</sup></p>
+        <p>Start your dev server however you always do. local-router never launches it, restarts it, or supervises it.</p>
         <pre class="cmd mono"><span class="ps1">$</span> pnpm dev
 <span class="out">  ➜  Local:  http://localhost:5173/</span></pre>
       </div>
@@ -566,7 +528,7 @@ td .name{font-weight:700;white-space:nowrap}
       <div class="step">
         <span class="step-no">Step 3</span>
         <h3>Open it</h3>
-        <p>Browsers resolve <code>.localhost</code> to loopback natively.<sup>1</sup> No hosts file was harmed. The dashboard lists every route at <code>dev.localhost</code>.</p>
+        <p>Browsers resolve <code>.localhost</code> to loopback natively, so there is no hosts-file setup. The dashboard lists every route at <code>dev.localhost</code>.</p>
         <pre class="cmd mono"><span class="ps1">$</span> open http://checkout-redesign.localhost</pre>
       </div>
     </div>
@@ -587,66 +549,58 @@ td .name{font-weight:700;white-space:nowrap}
           <li><b>Not a launcher.</b> <span>It does not start, stop, or supervise servers. Yours were running before it arrived.</span></li>
           <li><b>Not a tunnel.</b> <span>Nothing is exposed to the public internet. Loopback-only by default, bound to 127.0.0.1:80.</span></li>
           <li><b>Not a reverse-proxy framework.</b> <span>No config file dialect, no middleware ecosystem, no plugins.</span></li>
-          <li><b>Not a deployment story.</b> <span>Optional tailnet reach (§ 3) extends to machines you trust — and stops there.</span></li>
+          <li><b>Not a deployment story.</b> <span>Optional tailnet reach extends to machines you trust — and stops there.</span></li>
         </ul>
         <p class="scope-note">These omissions are load-bearing. A switchboard that also drove the trains would be a worse switchboard.</p>
       </div>
     </aside>
   </section>
 
-  <!-- §2 ROUTE TABLE -->
   <section aria-labelledby="h-routes">
     <div class="sec-head">
-      <span class="no">§ 2</span>
-      <h2 id="h-routes">Route table</h2>
+      <h2 id="h-routes">Your routes</h2>
       <span class="sec-note">As shown at dev.localhost</span>
     </div>
-    <p style="margin-bottom:18px">Every registered route, live in memory.<sup>3</sup> The dashboard renders this table with the same information; below, typeset for the record. Pinned routes stay put; a route whose target stops answering is flagged, not deleted — the name outlives the process.</p>
+    <p style="margin-bottom:18px">Every registered route lives in memory. The dashboard shows the same information: pinned routes stay put, and a route whose target stops answering is flagged instead of deleted.</p>
     <figure>
       <div class="tscroll">
         <table>
-          <caption><span style="color:var(--red);font-weight:700">FIG. 2</span> &nbsp;Route inventory, one working afternoon. Names shown are examples; yours will be more specific, or at least should be.</caption>
+          <caption>Example routes — names should make sense to future-you.</caption>
           <thead>
-            <tr><th>No.</th><th>Route</th><th>URL</th><th>Target</th><th>Status</th></tr>
+            <tr><th>Route</th><th>URL</th><th>Target</th><th>Status</th></tr>
           </thead>
           <tbody>
             <tr>
-              <td class="mono"><span class="rno">R-01</span></td>
               <td><span class="name">checkout-redesign</span></td>
               <td class="mono route-url">checkout-redesign<span class="tld">.localhost</span></td>
               <td class="mono target">127.0.0.1:5173</td>
               <td><span class="badge b-live">LIVE</span></td>
             </tr>
             <tr>
-              <td class="mono"><span class="rno">R-02</span></td>
               <td><span class="name">docs-preview</span></td>
               <td class="mono route-url">docs-preview<span class="tld">.localhost</span></td>
               <td class="mono target">127.0.0.1:3000</td>
               <td><span class="badge b-live">LIVE</span><span class="badge b-pin">PINNED</span></td>
             </tr>
             <tr>
-              <td class="mono"><span class="rno">R-03</span></td>
               <td><span class="name">webhook-tester</span></td>
               <td class="mono route-url">webhook-tester<span class="tld">.localhost</span></td>
               <td class="mono target">127.0.0.1:8080</td>
               <td><span class="badge b-live">LIVE</span></td>
             </tr>
             <tr>
-              <td class="mono"><span class="rno">R-04</span></td>
               <td><span class="name">client-demo</span></td>
               <td class="mono route-url">client-demo<span class="tld">.localhost</span></td>
               <td class="mono target">127.0.0.1:49152</td>
               <td><span class="badge b-live">LIVE</span><span class="badge b-pin">PINNED</span></td>
             </tr>
             <tr>
-              <td class="mono"><span class="rno">R-05</span></td>
               <td><span class="name">design-review</span></td>
               <td class="mono route-url">design-review<span class="tld">.localhost</span></td>
               <td class="mono target">127.0.0.1:5174</td>
               <td><span class="badge b-live">LIVE</span></td>
             </tr>
             <tr>
-              <td class="mono"><span class="rno">R-06</span></td>
               <td><span class="name">staging-proxy</span></td>
               <td class="mono route-url">staging-proxy<span class="tld">.localhost</span></td>
               <td class="mono target">127.0.0.1:8443</td>
@@ -657,29 +611,25 @@ td .name{font-weight:700;white-space:nowrap}
       </div>
     </figure>
 
-    <figure class="fig1 plate" aria-label="Figure 2a: photograph of the dashboard at dev.localhost">
+    <figure class="fig1 plate" aria-label="Dashboard at dev.localhost">
       <div class="fig-bar">
-        <span><span class="fig-no">FIG. 2a</span> &nbsp;<span class="fig-title">Dashboard at dev.localhost</span></span>
-        <span class="fig-aux">Live capture · author's machine</span>
+        <span class="fig-title">Dashboard at dev.localhost</span>
       </div>
       <img src="dashboard.png" width="3120" height="940" loading="lazy" alt="Screenshot of the local-router dashboard at dev.localhost listing four routes — pi-usage, notifreader, wad-field-kit, and site — with their URLs, targets, status badges, and per-route actions.">
       <figcaption>
-        <span class="cap-left">The same ledger, kept by the instrument itself: status, age, heartbeat, and per-route actions.</span>
-        <span>2026-07</span>
+        <span class="cap-left">See status, age, heartbeat, and per-route actions in one place.</span>
       </figcaption>
     </figure>
   </section>
 
-  <!-- §3 EXTENDED OPERATING RANGE -->
   <section aria-labelledby="h-range">
     <div class="sec-head">
-      <span class="no">§ 3</span>
-      <h2 id="h-range">Extended operating range</h2>
+      <h2 id="h-range">Beyond this machine</h2>
       <span class="sec-note">Optional · tailnet / trusted host</span>
     </div>
     <div class="range-grid">
       <div>
-        <p>Start the router with an external host and every route becomes reachable under that host as well — <strong>same local work, reachable from the machines you trust.</strong><sup>4</sup> Useful for a phone on your tailnet, a laptop across the desk, a colleague checking the client demo.</p>
+        <p>Start the router with an external host and every route becomes reachable under that host as well — <strong>same local work, reachable from the machines you trust.</strong> Useful for a phone on your tailnet, a laptop across the desk, or a colleague checking the client demo.</p>
         <pre class="cmd mono" style="margin-top:16px"><span class="ps1">$</span> local-router --external-host maple.ts.net
 <span class="cmt"># client-demo is now also:</span>
 <span class="out">  http://client-demo.maple.ts.net</span></pre>
@@ -687,7 +637,7 @@ td .name{font-weight:700;white-space:nowrap}
       </div>
       <figure class="range-fig">
         <div class="fig-bar">
-          <span><span class="fig-no">FIG. 3</span> &nbsp;<span class="fig-title">Reachability schedule</span></span>
+          <span class="fig-title">Where a route is reachable</span>
         </div>
         <div class="fig-body mono">
           <div class="reach-row">
@@ -716,17 +666,15 @@ td .name{font-weight:700;white-space:nowrap}
     </div>
   </section>
 
-  <!-- §4 RELATED EQUIPMENT -->
   <section aria-labelledby="h-rel">
     <div class="sec-head">
-      <span class="no">§ 4</span>
-      <h2 id="h-rel">Related equipment</h2>
+      <h2 id="h-rel">Which tool fits?</h2>
       <span class="sec-note">Selection by intended duty</span>
     </div>
-    <p style="margin-bottom:18px">Fine tools, different jobs. Pick by what you actually need reached, and by whom.</p>
+    <p style="margin-bottom:18px">Different tools solve different problems. Pick based on what needs to be reachable, and by whom.</p>
     <div class="tscroll">
       <table class="cmp">
-        <caption>Comparison is of scope, not quality. All listed equipment is respected around the shop.</caption>
+        <caption>Comparison of scope, not quality.</caption>
         <thead>
           <tr><th>Instrument</th><th>Intended duty</th><th>Reach for it when…</th></tr>
         </thead>
@@ -756,21 +704,19 @@ td .name{font-weight:700;white-space:nowrap}
     </div>
   </section>
 
-  <!-- §5 PROCUREMENT -->
   <section aria-labelledby="h-proc">
     <div class="sec-head">
-      <span class="no">§ 5</span>
-      <h2 id="h-proc">Procurement</h2>
-      <span class="sec-note">Lead time: one go install</span>
+      <h2 id="h-proc">Install</h2>
+      <span class="sec-note">One command</span>
     </div>
     <div class="order">
-      <span class="order-label">Order code</span>
+      <span class="order-label">Install command</span>
       <span class="order-code mono" id="order-code"><span class="ps1">$</span><span id="install-cmd">go install forge.dikka.dev/lab/local-router@latest</span></span>
       <button class="copy-btn" id="copy-btn" type="button" aria-label="Copy install command">COPY</button>
     </div>
     <div class="proc-cols">
       <div>
-        <h3>Supply data</h3>
+        <h3>Runtime details</h3>
         <div class="tscroll" style="border-color:var(--hair-strong)">
           <table class="spec">
             <tbody>
@@ -778,7 +724,7 @@ td .name{font-weight:700;white-space:nowrap}
               <tr><td>Language</td><td>Go</td></tr>
               <tr><td>Default bind</td><td>127.0.0.1:80</td></tr>
               <tr><td>Route storage</td><td>in-memory</td></tr>
-              <tr><td>Snapshot</td><td>export / import · JSONL<sup>3</sup></td></tr>
+              <tr><td>Snapshot</td><td>export / import · JSONL</td></tr>
               <tr><td>Dashboard</td><td>http://dev.localhost</td></tr>
               <tr><td>Control</td><td>CLI · REST API</td></tr>
             </tbody>
@@ -786,7 +732,7 @@ td .name{font-weight:700;white-space:nowrap}
         </div>
       </div>
       <div>
-        <h3>Quantities of note</h3>
+        <h3>What you do not need</h3>
         <div class="tscroll" style="border-color:var(--hair-strong)">
           <table class="spec">
             <tbody>
@@ -794,20 +740,12 @@ td .name{font-weight:700;white-space:nowrap}
               <tr><td>Docker containers required</td><td><span class="spec-zero">0</span></td></tr>
               <tr><td>Caddyfiles authored</td><td><span class="spec-zero">0</span></td></tr>
               <tr><td>Ports committed to memory</td><td><span class="spec-zero">0</span></td></tr>
-              <tr><td>Servers launched, all versions<sup>2</sup></td><td><span class="spec-zero">0</span></td></tr>
+              <tr><td>Servers launched by local-router</td><td><span class="spec-zero">0</span></td></tr>
             </tbody>
           </table>
         </div>
       </div>
     </div>
-  </section>
-
-  <!-- FOOTNOTES -->
-  <section class="footnotes" aria-label="Footnotes">
-    <p><span class="fn">1.</span> Browsers resolve <code>*.localhost</code> to loopback on their own (RFC 6761). Your hosts file remains untouched and, frankly, relieved.</p>
-    <p><span class="fn">2.</span> Cumulative count of servers started, restarted, or supervised by local-router across all releases: zero. This figure is not projected to change.</p>
-    <p><span class="fn">3.</span> Routes live in memory. <code>export routes.jsonl</code> writes them down; <code>import</code> reads them back. That is the entire persistence story, told in full.</p>
-    <p><span class="fn">4.</span> “Reachable from machines you trust” and “reachable from the internet” are different product categories. This sheet describes the first, on purpose.</p>
   </section>
 
   </main>

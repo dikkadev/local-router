@@ -72,7 +72,7 @@ fi
 echo "Live reload: http://127.0.0.1:$PORT"
 
 if command -v local-router >/dev/null 2>&1 && local-router status >/dev/null 2>&1; then
-  if route_url="$(local-router register "$ROUTE_NAME" --port "$PORT" --title "$ROUTE_TITLE" 2>/dev/null)"; then
+  if route_url="$(local-router register "$ROUTE_NAME" --port "$PORT" --title "$ROUTE_TITLE" --exec "./website/run.sh" --force 2>/dev/null)"; then
     ROUTE_REGISTERED=true
     echo "Friendly URL: $route_url"
   else
